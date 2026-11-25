@@ -261,4 +261,3 @@ if (!cycleCaught) failed += 1;
 
 console.log(failed === 0 ? '\n全部通过' : `\n${failed} 项失败`);
 process.exit(failed === 0 ? 0 : 1);
-}
