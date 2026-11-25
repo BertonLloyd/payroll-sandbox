@@ -1,0 +1,67 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Production builds
+dist/
+*/dist/
+build/
+*/build/
+
+# Environment files
+.env.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log
+yarn-error.log
+lerna-debug.log
+/logs/
+
+# Runtime
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage
+coverage/
+*.lcov
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary
+tmp/
+temp/
+.playwright-cli/
+
+# Lock files
+yarn.lock
+pnpm-lock.yaml
+
+# Cache
+.eslintcache
+*.tsbuildinfo
+
+# swc
+.swc
+
+# Agent
+.agent/
+
+# package-lock regenerated on install
+package-lock.json
