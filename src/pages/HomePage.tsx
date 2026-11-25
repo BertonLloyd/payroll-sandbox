@@ -72,7 +72,7 @@ export default function HomePage() {
 
       <div className="grid grid-cols-3 gap-4">
         {stats.map((s) => (
-          <Card key={slabel}>
+          <Card key={s.label}>
             <CardContent className="flex items-center gap-3 p-5">
               <s.icon className="size-8 text-primary" />
               <div>
