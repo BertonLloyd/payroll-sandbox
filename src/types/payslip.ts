@@ -6,6 +6,7 @@ export interface PaySlipLine {
   name: string;
   nature: Nature;
   amount: number;
+  excludeFromTotal?: boolean; // 基数行：仅展示，不计入应发/扣款合计
 }
 
 export type PaySlipStatus = 'draft' | 'confirmed' | 'void';
