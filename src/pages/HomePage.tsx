@@ -69,7 +69,7 @@ export default function HomePage() {
   // 应用模板创建方案
   async function buildFromTemplate(template: PayTemplate) {
     const scheme = await createSchemeFromTemplate(template);
-    await Promise.all([refreshSchemes(), refreshPayroll()]);
+    await Promise.all([refreshSchemes(), refreshPayroll]);
     setCurrentScheme(scheme.id);
     toast.success(`已创建方案：${scheme.name}`);
     navigate('/payroll');
@@ -106,7 +106,7 @@ export default function HomePage() {
   async function handleDelete() {
     if (!deleteTarget) return;
     await deleteSchemeCascade(deleteTarget.id);
-    await Promise.all([refreshSchemes(), refreshPayroll()]);
+    await Promise.all([refreshSchemes(), refreshPayroll]);
     setDeleteTarget(null);
     toast.success('方案已删除');
   }
