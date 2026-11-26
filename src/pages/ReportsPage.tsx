@@ -229,7 +229,7 @@ export default function ReportsPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base">各薪酬结构成本</CardTitle>
-        </CardContent>
+        </CardHeader>
         <CardContent>
           <ChartScroll minWidth={Math.max(480, byStructure.length * 180)}>
             <ResponsiveContainer width="100%" height={240}>
