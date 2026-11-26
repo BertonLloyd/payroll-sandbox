@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -26,8 +26,24 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install dependencies
-        run: npm install --registry=https://registry.npmjs.org/ --no-audit --no-fund
+      - name: Diagnose and install
+        run: |
+          echo "=== npm registry config ==="
+          npm config get registry
+          echo "=== connectivity official ==="
+          curl -sS -m 20 -o /dev/null -w "official http=%{http_code} time=%{time_total}\n" https://registry.npmjs.org/ || true
+          echo "=== connectivity npmmirror ==="
+          curl -sS -m 20 -o /dev/null -w "npmmirror http=%{http_code} time=%{time_total}\n" https://registry.npmmirror.com/ || true
+          echo "=== npm install ==="
+          npm install --registry=https://registry.npmjs.org/ --no-audit --no-fund 2>&1 | tee install-diag.log || true
+
+      - name: Report install log
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add install-diag.log
+          git commit -m "诊断: 回传 install 日志"
+          git push
 
       - name: Build
         run: npm run build:gh
