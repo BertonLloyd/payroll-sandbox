@@ -1,5 +1,6 @@
 // 员工管理：虚拟滚动表格 + 搜索/部门筛选 + 档案/覆盖/删除
 import { useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Pencil, Plus, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { usePayroll } from '@/store';
@@ -26,6 +27,11 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
   EmployeeFormDialog,
   EmployeeOverrideDialog,
 } from '@/components/business/employeeform';
@@ -47,10 +53,12 @@ export default function EmployeesPage() {
   const {
     employees: allEmployees,
     structures: allStructures,
+    components: allComponents,
     employeeOps,
   } = usePayroll();
   const { currentSchemeId } = useScheme();
   const { spotlight, clearSpotlight } = useOnboarding();
+  const navigate = useNavigate();
 
   // 仅当前方案的员工与结构
   const employees = allEmployees.filter(
@@ -173,6 +181,26 @@ export default function EmployeesPage() {
         </Button>
       </div>
 
+      {allComponents.some(
+        (c) =>
+          c.schemeId === currentSchemeId &&
+          c.calcConfig.kind === 'external',
+      ) && (
+        <div className="flex items-center justify-between gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-xs">
+          <span className="text-muted-foreground">
+            本方案含外部输入项，每月算薪前需先到算薪工作台录入，未录入将按缺省值计算。
+          </span>
+          <Button
+            size="sm"
+            variant="outline"
+            className="shrink-0"
+            onClick={() => navigate('/payroll')}
+          >
+            去录入
+          </Button>
+        </div>
+      )}
+
       <Card className="flex min-h-0 flex-1 flex-col">
         <div className={`${GRID} h-11 shrink-0 border-b text-xs font-medium text-muted-foreground`}>
           <span>工号</span>
@@ -209,7 +237,17 @@ export default function EmployeesPage() {
                       }}
                     >
                       <span className="text-muted-foreground">{e.empNo}</span>
-                      <span className="font-medium">{e.name}</span>
+                      <span className="flex items-center gap-1 font-medium">
+                        {e.name}
+                        {e.overrides.length > 0 && (
+                          <Badge
+                            variant="secondary"
+                            className="h-4 px-1 text-[9px] font-normal"
+                          >
+                            已覆盖
+                          </Badge>
+                        )}
+                      </span>
                       <span className="truncate">{e.department}</span>
                       <span className="truncate">{e.position}</span>
                       <span>{e.level}</span>
@@ -222,33 +260,48 @@ export default function EmployeesPage() {
                         </Badge>
                       </span>
                       <span className="flex justify-end gap-0.5">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="size-8"
-                          onClick={() => {
-                            setEditing(e);
-                            setFormOpen(true);
-                          }}
-                        >
-                          <Pencil className="size-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="size-8"
-                          onClick={() => setOverrideTarget(e)}
-                        >
-                          <SlidersHorizontal className="size-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="size-8 text-muted-foreground"
-                          onClick={() => setDeleteTarget(e)}
-                        >
-                          <Trash2 className="size-4" />
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-8"
+                              onClick={() => {
+                                setEditing(e);
+                                setFormOpen(true);
+                              }}
+                            >
+                              <Pencil className="size-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>编辑档案</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-8"
+                              onClick={() => setOverrideTarget(e)}
+                            >
+                              <SlidersHorizontal className="size-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>个人覆盖</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-8 text-muted-foreground"
+                              onClick={() => setDeleteTarget(e)}
+                            >
+                              <Trash2 className="size-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>删除</TooltipContent>
+                        </Tooltip>
                       </span>
                     </div>
                   );
@@ -264,6 +317,10 @@ export default function EmployeesPage() {
         onOpenChange={setFormOpen}
         editing={editing}
         onSubmit={handleSubmit}
+        onEditOverride={(emp) => {
+          setFormOpen(false);
+          setOverrideTarget(emp);
+        }}
       />
 
       {overrideTarget && (
