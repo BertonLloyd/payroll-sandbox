@@ -31,8 +31,10 @@ import { BlockEditor } from '../blockeditor/BlockEditor';
 function blankDraft(): PayComponent {
   return {
     id: '',
+    schemeId: '',
     code: '',
     name: '',
+    description: '',
     nature: 'earning',
     taxTreatment: 'pretax',
     calcType: 'fixed',
@@ -69,11 +71,21 @@ function defaultCalcConfig(kind: CalcType): CalcConfig {
       return {
         kind: 'external',
         inputKey: '',
+        label: '',
         coefficient: 1,
         fallback: 0,
       };
   }
 }
+
+// 五种计算方式的通俗说明，随当前选择展示
+const CALC_TYPE_HINTS: Record<CalcType, string> = {
+  fixed: '固定金额：每月发同样的钱，直接填写金额即可。',
+  ratio: '按比例：以另一个组件为基数，按百分比计算，例如基本工资的 5%。',
+  blocks: '积木公式：像搭积木一样拼出规则，支持加减乘除和条件判断，无需写代码。',
+  tiered: '阶梯分段：基数落在哪个区间，就按该区间的比例计算，常用于提成。',
+  external: '外部输入驱动：每月先录入数据（如销售额、绩效），再据此计算。',
+};
 
 function BaseComponentSelect({
   value,
@@ -230,11 +242,19 @@ function ExternalFields({
   return (
     <div className="space-y-3">
       <div className="space-y-1.5">
-        <Label>输入字段 key</Label>
+        <Label>输入字段标识</Label>
         <Input
           value={config.inputKey}
           onChange={(e) => onChange({ ...config, inputKey: e.target.value })}
-          placeholder="如 sales / performance"
+          placeholder="如 sales、performance"
+        />
+      </div>
+      <div className="space-y-1.5">
+        <Label>中文显示名</Label>
+        <Input
+          value={config.label ?? ''}
+          onChange={(e) => onChange({ ...config, label: e.target.value })}
+          placeholder="如 销售额、绩效系数"
         />
       </div>
       <div className="grid grid-cols-2 gap-3">
@@ -270,7 +290,7 @@ export function ComponentFormDialog({
   onSubmit,
 }: {
   open: boolean;
-  onOpenChange: (open: boolean): boolean;
+  onOpenChange: (open: boolean) => void;
   editing: PayComponent | null;
   onSubmit(data: PayComponent): Promise<void>;
 }) {
@@ -318,6 +338,17 @@ export function ComponentFormDialog({
                   placeholder="如 BASE"
                 />
               </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>计算说明</Label>
+              <Input
+                value={draft.description ?? ''}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, description: e.target.value }))
+                }
+                placeholder="用一句话写清怎么算，如 基本工资 × 2%"
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -381,6 +412,9 @@ export function ComponentFormDialog({
                   <SelectItem value="external">外部输入驱动</SelectItem>
                 </SelectContent>
               </Select>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                {CALC_TYPE_HINTS[draft.calcType]}
+              </p>
             </div>
 
             {draft.calcConfig.kind === 'fixed' && (
