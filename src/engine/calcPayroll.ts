@@ -14,6 +14,7 @@ import { calcSocial, calcMonthlyTax } from './tax';
 import { uid } from '../lib/id';
 
 export interface CalcPayrollInput {
+  schemeId: string;
   employee: Employee;
   structure: PayStructure;
   components: PayComponent[];
@@ -150,6 +151,7 @@ export function calcPayroll(input: CalcPayrollInput): PaySlip {
 
   return {
     id: uid(),
+    schemeId: input.schemeId,
     employeeId: employee.id,
     year,
     month,
