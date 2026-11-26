@@ -34,7 +34,7 @@ export function EmployeeOverrideDialog({
 }: {
   employee: Employee;
   open: boolean;
-  onOpenChange: (open: boolean): void;
+  onOpenChange: (open: boolean) => void;
   onSave(overrides: EmployeeOverride[]): Promise<void>;
 }) {
   const { components } = usePayroll();
