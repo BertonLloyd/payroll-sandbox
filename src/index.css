@@ -8,3 +8,22 @@
 body {
   font-variant-numeric: tabular-nums;
 }
+
+/* 新手向导：关键按钮高亮脉冲 */
+@keyframes onboarding-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 hsl(200 85% 38% / 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 7px hsl(200 85% 38% / 0);
+  }
+}
+
+.onboarding-spotlight {
+  position: relative;
+  z-index: 5;
+  outline: 2px solid hsl(200 85% 38%);
+  outline-offset: 2px;
+  animation: onboarding-pulse 1.4s ease-in-out infinite;
+}

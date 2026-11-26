@@ -11,7 +11,7 @@ export interface StorageAdapter {
 
 export interface CapacityEstimate {
   quota: number;
-  available: number;
   usage: number;
+  available: number;
   supported: boolean;
 }
