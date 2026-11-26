@@ -1,4 +1,4 @@
-// 连锁门店模板：多门店、阶梯分段、积木公式、外部销售额驱动
+// 连锁门店模板：固定+绩效系数+考勤扣款+全勤奖+工龄奖+销售额阶梯提成，覆盖月度录入与考勤 Excel 全流程
 import type { PayTemplate } from '../../types';
 import {
   makeComponent,
@@ -22,26 +22,27 @@ const components = [
     calcConfig: { kind: 'fixed', amount: 1200 },
   }),
   makeComponent({
-    id: 'cs-perf',
-    code: 'CS_PERF',
-    name: '绩效工资',
-    description: '每月录入销售额，按销售额计算',
+    id: 'cs-sales',
+    code: 'CS_SALES',
+    name: '销售额',
+    description: '每月在工作台录入当月销售额，仅作提成基数、不直接发放',
+    excludeFromTotal: true,
     calcConfig: {
       kind: 'external',
-      inputKey: 'sales',
+      inputKey: 'cs_sales',
       label: '销售额',
       coefficient: 1,
       fallback: 0,
     },
   }),
   makeComponent({
-    id: 'cs-tier',
-    code: 'CS_TIER',
-    name: '阶梯提成',
-    description: '按销售额分段，适用区间内按对应比例计提',
+    id: 'cs-comm',
+    code: 'CS_COMM',
+    name: '销售提成',
+    description: '按销售额落档，适用区间内按对应比例计提，含封顶档',
     calcConfig: {
       kind: 'tiered',
-      baseComponentId: 'cs-perf',
+      baseComponentId: 'cs-sales',
       brackets: [
         { upTo: 50000, rate: 0.02, deduct: 0 },
         { upTo: 100000, rate: 0.03, deduct: 0 },
@@ -50,20 +51,65 @@ const components = [
     },
   }),
   makeComponent({
-    id: 'cs-block',
-    code: 'CS_BLOCK',
-    name: '奖金',
-    description: '基本工资 × 3%',
+    id: 'cs-perf',
+    code: 'CS_PERF',
+    name: '绩效工资',
+    description: '基数为基本工资+岗位津贴，工作台只录绩效系数，按基数×系数计算',
     calcConfig: {
-      kind: 'blocks',
-      ast: {
-        type: 'math',
-        op: '*',
-        operands: [
-          { type: 'ref', refType: 'component', componentId: 'cs-base' },
-          { type: 'ref', refType: 'constant', value: 0.03 },
-        ],
-      },
+      kind: 'performance',
+      baseMode: 'components',
+      baseAmount: 0,
+      baseComponentIds: ['cs-base', 'cs-post'],
+      inputLabel: '绩效系数',
+      defaultCoefficient: 1,
+    },
+  }),
+  makeComponent({
+    id: 'cs-attend',
+    code: 'CS_ATTEND',
+    name: '考勤扣款',
+    description: '按应出勤、实际出勤、小时假、病假折算；病假每天扣日工资20%',
+    nature: 'deduction',
+    calcConfig: {
+      kind: 'attendance',
+      baseMode: 'components',
+      baseAmount: 0,
+      baseComponentIds: ['cs-base', 'cs-post'],
+      dayDivisor: 'actual',
+      statutoryDays: 21.75,
+      workHoursPerDay: 8,
+      sickBaseMode: 'base',
+      sickBaseComponentIds: ['cs-base'],
+      sickMinimumAmount: 0,
+      sickDeductRate: 0.2,
+    },
+  }),
+  makeComponent({
+    id: 'cs-full',
+    code: 'CS_FULL',
+    name: '全勤奖',
+    description: '与考勤联动，无缺勤即发 200 元，否则 0',
+    calcConfig: {
+      kind: 'fullAttendance',
+      amount: 200,
+      requireNoAbsent: true,
+      requireNoSick: false,
+      requireNoHourLeave: false,
+      attendanceComponentId: 'cs-attend',
+    },
+  }),
+  makeComponent({
+    id: 'cs-senior',
+    code: 'CS_SENIOR',
+    name: '工龄奖',
+    description: '按入职日期自动算周年，满1年100、满3年200、满5年300',
+    calcConfig: {
+      kind: 'seniority',
+      brackets: [
+        { minYears: 1, amount: 100 },
+        { minYears: 3, amount: 200 },
+        { minYears: 5, amount: 300 },
+      ],
     },
   }),
   makeComponent({
