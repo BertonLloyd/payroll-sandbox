@@ -1,4 +1,4 @@
-// 引用节点编辑器：常量 / 组件 / 外部输入，全部点选，不出现表达式
+// 引用节点编辑器：常量 / 组件 / 外部输入，全部点选，不出现表达式；外部输入下拉选择已有字段
 import type { RefNode } from '../../../types';
 import { Input } from '../../ui/input';
 import {
@@ -15,14 +15,21 @@ export interface RefOption {
   name: string;
 }
 
+export interface InputOption {
+  key: string;
+  label: string;
+}
+
 export function RefEditor({
   value,
   onChange,
   components,
+  inputOptions = [],
 }: {
   value: RefNode;
   onChange: (v: RefNode) => void;
   components: RefOption[];
+  inputOptions?: InputOption[];
 }) {
   return (
     <div className="space-y-2">
@@ -38,7 +45,11 @@ export function RefEditor({
               componentId: components[0]?.id,
             });
           if (t === 'input')
-            onChange({ type: 'ref', refType: 'input', inputKey: '' });
+            onChange({
+              type: 'ref',
+              refType: 'input',
+              inputKey: inputOptions[0]?.key ?? '',
+            });
         }}
       >
         <SelectTrigger className="h-8">
@@ -80,14 +91,28 @@ export function RefEditor({
         </Select>
       )}
 
-      {value.refType === 'input' && (
-        <Input
-          className="h-8"
-          placeholder="输入字段标识，如 sales、performance"
-          value={value.inputKey ?? ''}
-          onChange={(e) => onChange({ ...value, inputKey: e.target.value })}
-        />
-      )}
+      {value.refType === 'input' &&
+        (inputOptions.length === 0 ? (
+          <p className="text-xs text-muted-foreground">
+            暂无外部输入字段，请先在组件库建立“外部输入驱动”组件。
+          </p>
+        ) : (
+          <Select
+            value={value.inputKey}
+            onValueChange={(key) => onChange({ ...value, inputKey: key })}
+          >
+            <SelectTrigger className="h-8">
+              <SelectValue placeholder="选择录入字段" />
+            </SelectTrigger>
+            <SelectContent>
+              {inputOptions.map((o) => (
+                <SelectItem key={o.key} value={o.key}>
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ))}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-// 积木编辑器容器：弹窗包裹递归 NodeEditor
+// 积木编辑器容器：弹窗包裹递归 NodeEditor，传入组件与外部输入可选项
 import type { BlockNode } from '../../../types';
 import {
   Dialog,
@@ -7,7 +7,7 @@ import {
   DialogTitle,
 } from '../../ui/dialog';
 import { NodeEditor } from './NodeEditor';
-import type { RefOption } from './RefEditor';
+import type { InputOption, RefOption } from './RefEditor';
 
 export function BlockEditor({
   open,
@@ -15,13 +15,15 @@ export function BlockEditor({
   value,
   onChange,
   components,
+  inputOptions,
   title,
 }: {
   open: boolean;
-  onOpenChange(open: boolean): void;
+  onOpenChange: (open: boolean) => void;
   value: BlockNode;
   onChange: (node: BlockNode) => void;
   components: RefOption[];
+  inputOptions: InputOption[];
   title?: string;
 }) {
   return (
@@ -34,7 +36,12 @@ export function BlockEditor({
           像搭积木一样拼出计算规则，全程点选、不用写代码。先选积木类型（引用、运算、比较、逻辑、条件），再逐层设置内容；
           「引用」可选取常量、其他组件或外部输入，「运算」支持加减乘除，「条件」可按判断结果取不同值。
         </div>
-        <NodeEditor value={value} components={components} onChange={onChange} />
+        <NodeEditor
+          value={value}
+          components={components}
+          inputOptions={inputOptions}
+          onChange={onChange}
+        />
       </DialogContent>
     </Dialog>
   );
