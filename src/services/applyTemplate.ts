@@ -69,7 +69,32 @@ function remapConfig(
       return { ...config, ast: remapAst(config.ast, map) };
     case 'fixed':
     case 'external':
+    case 'seniority':
       return config;
+    case 'performance':
+      return {
+        ...config,
+        baseComponentIds: config.baseComponentIds.map(
+          (id) => map.get(id) ?? id,
+        ),
+      };
+    case 'attendance':
+      return {
+        ...config,
+        baseComponentIds: config.baseComponentIds.map(
+          (id) => map.get(id) ?? id,
+        ),
+        sickBaseComponentIds: config.sickBaseComponentIds.map(
+          (id) => map.get(id) ?? id,
+        ),
+      };
+    case 'fullAttendance':
+      return {
+        ...config,
+        attendanceComponentId:
+          map.get(config.attendanceComponentId) ??
+          config.attendanceComponentId,
+      };
   }
 }
 
