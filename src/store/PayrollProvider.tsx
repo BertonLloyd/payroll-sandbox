@@ -32,7 +32,7 @@ interface EntityOps<T extends AuditFields> {
 
 function buildOps<T extends AuditFields>(
   repo: BaseRepository<T>,
-  setItems: Dispatch<SetStateAction<T[]>>,
+  setItems: Dispatch<SetStateAction<T>>,
 ): EntityOps<T> {
   return {
     async create(input) {
