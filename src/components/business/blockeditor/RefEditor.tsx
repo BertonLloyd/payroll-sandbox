@@ -83,7 +83,7 @@ export function RefEditor({
       {value.refType === 'input' && (
         <Input
           className="h-8"
-          placeholder="输入字段 key，如 sales / performance"
+          placeholder="输入字段标识，如 sales、performance"
           value={value.inputKey ?? ''}
           onChange={(e) => onChange({ ...value, inputKey: e.target.value })}
         />
