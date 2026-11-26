@@ -57,7 +57,8 @@ export function collectComponentInputFields(
 
 // 多个组件汇总全部录入字段，按出现顺序去重
 export function collectAllInputFields(
-  components: PayComponent[],n): InputFieldSpec[] {
+  components: PayComponent[],
+): InputFieldSpec[] {
   const seen = new Map<string, InputFieldSpec>();
   for (const component of components) {
     for (const field of collectComponentInputFields(component)) {
