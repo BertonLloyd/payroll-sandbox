@@ -195,8 +195,7 @@ export function NodeEditor({
                   variant="outline"
                   size="sm"
                   onClick={() =>
-                    onChange({ ...value, right: zeroRef })
-                  }
+                    onChange({ ...value, right: zeroRef })}
                 >
                   改引用
                 </Button>
@@ -231,8 +230,8 @@ export function NodeEditor({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="and">并且 and</SelectItem>
-              <SelectItem value="or">或者 or</SelectItem>
+              <SelectItem value="and">并且</SelectItem>
+              <SelectItem value="or">或者</SelectItem>
             </SelectContent>
           </Select>
           {value.operands.map((operand, i) => (
