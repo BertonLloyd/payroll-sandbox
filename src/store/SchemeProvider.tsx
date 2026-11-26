@@ -29,7 +29,7 @@ export function SchemeProvider({ children }: { children: ReactNode }) {
   const repos = useMemo(() => getRepositories(), []);
   const [schemes, setSchemes] = useState<Scheme[]>([]);
   const [currentSchemeId, setCurrentSchemeId] = useState<string | null>(null);
-  const [loading, setLoading] useState(true);
+  const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async (): Promise<Scheme[]> => {
     const list = await repos.schemes.list();
