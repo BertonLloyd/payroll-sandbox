@@ -52,10 +52,12 @@ export default function EquityPage() {
 
   const periods = useMemo(() => {
     const set = new Set(
-      allSlips.filter(
-        (s) =>
-          s.schemeId === currentSchemeId && s.status !== 'void',
-      ).map((s) => `${s.year}-${s.month}`),
+      allSlips
+        .filter(
+          (s) =>
+            s.schemeId === currentSchemeId && s.status !== 'void',
+        )
+        .map((s) => `${s.year}-${s.month}`),
     );
     return [...set].sort((a, b) => {
       const [ay, am] = a.split('-').map(Number);
@@ -94,7 +96,7 @@ export default function EquityPage() {
   );
   const inversions = useMemo(
     () => levelInversions(employees, slips),
-    [employees, slips],
+    [slips, employees],
   );
 
   if (periods.length === 0) {
