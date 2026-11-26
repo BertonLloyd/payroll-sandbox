@@ -28,7 +28,7 @@ export function PayslipDetailDialog({
   slip: PaySlip | null;
   employeeName: string;
   open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onOpenChange(open: boolean): void;
   onConfirm?(): void;
   onVoid?(): void;
 }) {
@@ -49,8 +49,21 @@ export function PayslipDetailDialog({
                 key={line.componentId}
                 className="flex justify-between text-sm"
               >
-                <span className="text-muted-foreground">{line.name}</span>
-                <span className="font-medium">{formatMoney(line.amount)}</span>
+                <span className="flex items-center gap-1.5 text-muted-foreground">
+                  {line.name}
+                  {line.excludeFromTotal && (
+                    <Badge variant="outline" className="h-4 px-1 text-[10px]">
+                      基数 · 不计合计
+                    </Badge>
+                  )}
+                </span>
+                <span
+                  className={
+                    line.excludeFromTotal ? 'text-muted-foreground' : 'font-medium'
+                  }
+                >
+                  {formatMoney(line.amount)}
+                </span>
               </div>
             ))}
             <div className="mt-2 space-y-1.5 border-t pt-2 text-sm">
