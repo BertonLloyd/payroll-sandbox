@@ -1,0 +1,6 @@
+npm error code ETARGET
+npm error notarget No matching version found for eslint-plugin-react-ref@^0.4.26.
+npm error notarget In most cases you or one of your dependencies are requesting
+npm error notarget a package version that doesn't exist.
+npm error A complete log of this run can be found in: /home/runner/.npm/_logs/2026-11-26T09_59_56_013Z-debug-0.log
+code=1
