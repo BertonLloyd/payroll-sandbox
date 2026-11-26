@@ -1,7 +1,8 @@
-// 算薪工作台：月份选择 + 外部输入虚拟表 + 批量算薪 + 工资条确认/作废
+// 算薪工作台：按方案隔离，月份选择 + 外部输入虚拟表 + 批量算薪 + 一键确认/单条确认/作废
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { usePayroll } from '@/store';
+import { useScheme } from '@/store/SchemeProvider';
 import { getRepositories } from '@/repositories/factory';
 import type {
   Employee,
@@ -9,7 +10,7 @@ import type {
   PaySlipStatus,
 } from '@/types';
 import { calcPayroll } from '@/engine/calcPayroll';
-import { formatMoney } from '@/lib/format';
+import { formatMoney, parseNumber } from '@/lib/format';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -22,7 +23,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { PayslipDetailDialog } from '@/components/business/payslip/PayslipDetailDialog';
-import { parseNumber } from '@/lib/format';
+import { useOnboarding } from '@/components/business/onboarding';
 import { toast } from 'sonner';
 
 const STATUS_LABEL: Record<PaySlipStatus, string> = {
@@ -40,6 +41,8 @@ export default function PayrollPage() {
     components,
     paramPacks,
   } = usePayroll();
+  const { currentSchemeId } = useScheme();
+  const { spotlight, clearSpotlight, markPayrollRun } = useOnboarding();
   const repos = useMemo(() => getRepositories(), []);
 
   const now = new Date();
@@ -52,22 +55,51 @@ export default function PayrollPage() {
   const [slips, setSlips] = useState<PaySlip[]>([]);
   const [detail, setDetail] = useState<PaySlip | null>(null);
 
+  // 当前方案下的组件/结构/员工
+  const schemeComponents = useMemo(
+    () => components.filter((c) => c.schemeId === currentSchemeId),
+    [components, currentSchemeId],
+  );
+  const schemeStructures = useMemo(
+    () => structures.filter((s) => s.schemeId === currentSchemeId),
+    [structures, currentSchemeId],
+  );
+  const activeEmployees = useMemo(
+    () =>
+      employees.filter(
+        (e) => e.schemeId === currentSchemeId && e.status === 'active',
+      ),
+    [employees, currentSchemeId],
+  );
+
   // external 组件所需输入 key
   const inputKeys = useMemo(
     () =>
       [
         ...new Set(
-          components
+          schemeComponents
             .filter((c) => c.calcConfig.kind === 'external')
             .map((c) =>
               (c.calcConfig as { inputKey: string }).inputKey,
             ),
         ),
       ].filter(Boolean),
-    [components],
+    [schemeComponents],
   );
 
-  // 月份切换时加载当月工资条与已存输入
+  // external 输入 key -> 中文显示名（缺省回退 key）
+  const inputLabels = useMemo(() => {
+    const map = new Map<string, string>();
+    schemeComponents
+      .filter((c) => c.calcConfig.kind === 'external')
+      .forEach((c) => {
+        const cfg = c.calcConfig as { inputKey: string; label?: string };
+        if (cfg.inputKey && cfg.label) map.set(cfg.inputKey, cfg.label);
+      });
+    return map;
+  }, [schemeComponents]);
+
+  // 月份或方案切换时加载当月、当前方案的工资条与已存输入
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -76,19 +108,21 @@ export default function PayrollPage() {
         repos.monthlyInputs.listPeriod(year, month),
       ]);
       if (cancelled) return;
-      setSlips(periodSlips);
+      setSlips(
+        periodSlips.filter((s) => s.schemeId === currentSchemeId),
+      );
       const draft: Record<string, Record<string, number>> = {};
-      periodInputs.forEach((mi) => {
-        draft[mi.employeeId] = { ...mi.values };
-      });
+      periodInputs
+        .filter((mi) => mi.schemeId === currentSchemeId)
+        .forEach((mi) => {
+          draft[mi.employeeId] = { ...mi.values };
+        });
       setInputDraft(draft);
     })();
     return () => {
       cancelled = true;
     };
-  }, [year, month, repos]);
-
-  const activeEmployees = employees.filter((e) => e.status === 'active');
+  }, [year, month, repos, currentSchemeId]);
 
   function setInput(empId: string, key: string, value: number) {
     setInputDraft((prev) => ({
@@ -98,20 +132,38 @@ export default function PayrollPage() {
   }
 
   async function saveInputs() {
+    if (!currentSchemeId) return;
     for (const [empId, values] of Object.entries(inputDraft)) {
-      await repos.monthlyInputs.upsert(year, month, empId, values);
+      await repos.monthlyInputs.upsert(
+        year,
+        month,
+        currentSchemeId,
+        empId,
+        values,
+      );
     }
     toast.success('外部输入已保存');
   }
 
   async function runPayroll() {
+    if (!currentSchemeId) return;
     const pack = paramPacks.find((p) => p.isDefault) ?? paramPacks[0];
     if (!pack) {
       toast.error('请先在设置中准备个税社保参数包');
       return;
     }
+
+    // 当月全量工资条：保留其他方案的数据不动
+    const allPeriodSlips = await repos.paySlips.listPeriod(year, month);
+    const otherSlips = allPeriodSlips.filter(
+      (s) => s.schemeId !== currentSchemeId,
+    );
+
+    // 当前方案已确认的工资条锁定保留
     const confirmed = new Map(
-      slips.filter((s) => s.status === 'confirmed').map((s) => [s.employeeId, s]),
+      slips
+        .filter((s) => s.status === 'confirmed')
+        .map((s) => [s.employeeId, s]),
     );
     const next: PaySlip[] = [];
     let failures = 0;
@@ -122,7 +174,7 @@ export default function PayrollPage() {
         next.push(kept);
         continue;
       }
-      const structure = structures.find((s) => s.id === emp.structureId);
+      const structure = schemeStructures.find((s) => s.id === emp.structureId);
       if (!structure) {
         failures += 1;
         continue;
@@ -130,9 +182,10 @@ export default function PayrollPage() {
       try {
         next.push(
           calcPayroll({
+            schemeId: currentSchemeId,
             employee: emp,
             structure,
-            components,
+            components: schemeComponents,
             paramPack: pack,
             inputValues: inputDraft[emp.id] ?? {},
             year,
@@ -147,18 +200,32 @@ export default function PayrollPage() {
       }
     }
 
-    await repos.paySlips.replacePeriod(year, month, next);
+    // 合并其他方案后整体写回
+    await repos.paySlips.replacePeriod(year, month, [
+      ...otherSlips,
+      ...next,
+    ]);
     setSlips(next);
+    if (next.length > 0) markPayrollRun();
     toast.success(
       `已生成 ${next.length} 条工资条${failures ? `，${failures} 人未生成` : ''}`,
     );
   }
 
   async function confirmSlip(id: string) {
-    setSlips(await repos.paySlips.confirm(year, month, id));
+    const all = await repos.paySlips.confirm(year, month, id);
+    setSlips(all.filter((s) => s.schemeId === currentSchemeId));
   }
+
+  async function confirmAll() {
+    const all = await repos.paySlips.confirmAll(year, month);
+    setSlips(all.filter((s) => s.schemeId === currentSchemeId));
+    toast.success('当月工资条已全部确认');
+  }
+
   async function voidSlip(id: string) {
-    setSlips(await repos.paySlips.voidSlip(year, month, id));
+    const all = await repos.paySlips.voidSlip(year, month, id);
+    setSlips(all.filter((s) => s.schemeId === currentSchemeId));
   }
 
   // 外部输入虚拟表
@@ -177,6 +244,16 @@ export default function PayrollPage() {
     () => new Map(employees.map((e) => [e.id, e])),
     [employees],
   );
+
+  const draftCount = slips.filter((s) => s.status === 'draft').length;
+
+  if (!currentSchemeId) {
+    return (
+      <p className="py-12 text-center text-sm text-muted-foreground">
+        暂无方案，请先回到首页选择模板或新建空白方案
+      </p>
+    );
+  }
 
   return (
     <div className="flex h-full flex-col gap-4">
@@ -215,7 +292,15 @@ export default function PayrollPage() {
           <Button variant="outline" onClick={saveInputs}>
             保存输入
           </Button>
-          <Button onClick={runPayroll}>批量算薪</Button>
+          <Button
+            className={spotlight === 'run-payroll' ? 'onboarding-spotlight' : ''}
+            onClick={() => {
+              clearSpotlight();
+              runPayroll();
+            }}
+          >
+            批量算薪
+          </Button>
         </div>
       </div>
 
@@ -240,7 +325,7 @@ export default function PayrollPage() {
                 </span>
                 {inputKeys.map((k) => (
                   <span key={k} className="flex items-center px-3" style={{ width: keyCol }}>
-                    {k}
+                    {inputLabels.get(k) ?? k}
                   </span>
                 ))}
               </div>
@@ -290,9 +375,16 @@ export default function PayrollPage() {
       {/* 工资条列表 */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm">
-            工资条（{year}-{String(month).padStart(2, '0')}）
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm">
+              工资条（{year}-{String(month).padStart(2, '0')}）
+            </CardTitle>
+            {draftCount > 0 && (
+              <Button size="sm" onClick={confirmAll}>
+                一键确认（{draftCount} 条草稿）
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {slips.length === 0 ? (
