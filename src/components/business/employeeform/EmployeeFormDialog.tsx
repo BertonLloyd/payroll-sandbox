@@ -47,7 +47,7 @@ export function EmployeeFormDialog({
   onSubmit,
 }: {
   open: boolean;
-  onOpenChange(open: boolean) => void;
+  onOpenChange: (open: boolean) => void;
   editing: Employee | null;
   onSubmit(data: Employee): Promise<void>;
 }) {
