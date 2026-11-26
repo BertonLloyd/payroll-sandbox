@@ -84,7 +84,7 @@ export function SchemeSwitcher() {
     if (!currentScheme) return;
     const id = currentScheme.id;
     await deleteSchemeCascade(id);
-    await Promise.all([refreshSchemes(), refreshPayroll()]);
+    await Promise.all([refreshSchemes(), refreshPayroll]);
     setDeleteOpen(false);
     toast.success('方案已整套删除');
   }
