@@ -67,6 +67,27 @@ export class PaySlipRepository {
     return next;
   }
 
+  // 一键确认：当月所有草稿批量转为已确认
+  async confirmAll(year: number, month: number): Promise<PaySlip[]> {
+    const slips = await this.listPeriod(year, month);
+    const now = Date.now();
+    let changed = false;
+    const next = slips.map((s) => {
+      if (s.status === 'draft') {
+        changed = true;
+        return {
+          ...s,
+          status: 'confirmed' as const,
+          confirmedAt: now,
+          updatedAt: now,
+        };
+      }
+      return s;
+    });
+    if (changed) await this.writePeriod(year, month, next);
+    return next;
+  }
+
   // 作废：confirmed/draft → void，保留记录
   async voidSlip(
     year: number,

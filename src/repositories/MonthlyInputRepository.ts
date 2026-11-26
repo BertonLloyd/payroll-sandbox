@@ -36,22 +36,30 @@ export class MonthlyInputRepository {
   async upsert(
     year: number,
     month: number,
+    schemeId: string,
     employeeId: string,
     values: Record<string, number>,
   ): Promise<MonthlyInput[]> {
     const list = await this.listPeriod(year, month);
+    const now = Date.now();
     const idx = list.findIndex((x) => x.employeeId === employeeId);
     if (idx >= 0) {
-      list[idx] = { ...list[idx], values: { ...list[idx].values, ...values } };
+      list[idx] = {
+        ...list[idx],
+        schemeId,
+        values: { ...list[idx].values, ...values },
+        updatedAt: now,
+      };
     } else {
       list.push({
         id: uid(),
+        schemeId,
         employeeId,
         year,
         month,
         values,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+        createdAt: now,
+        updatedAt: now,
         deleted: false,
         deletedAt: null,
       });

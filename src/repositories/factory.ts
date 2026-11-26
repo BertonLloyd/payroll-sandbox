@@ -1,5 +1,6 @@
 // repository 工厂：基于默认存储管理器构建全部 repository（单例）
 import { getStorageManager } from '../storage/factory';
+import { SchemeRepository } from './SchemeRepository';
 import { ComponentRepository } from './ComponentRepository';
 import { StructureRepository } from './StructureRepository';
 import { EmployeeRepository } from './EmployeeRepository';
@@ -9,6 +10,7 @@ import { PaySlipRepository } from './PaySlipRepository';
 import { MonthlyInputRepository } from './MonthlyInputRepository';
 
 export interface Repositories {
+  schemes: SchemeRepository;
   components: ComponentRepository;
   structures: StructureRepository;
   employees: EmployeeRepository;
@@ -24,6 +26,7 @@ export function getRepositories(): Repositories {
   if (!cache) {
     const sm = getStorageManager();
     cache = {
+      schemes: new SchemeRepository(sm),
       components: new ComponentRepository(sm),
       structures: new StructureRepository(sm),
       employees: new EmployeeRepository(sm),

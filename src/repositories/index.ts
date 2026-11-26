@@ -1,4 +1,5 @@
 export * from './BaseRepository';
+export * from './SchemeRepository';
 export * from './ComponentRepository';
 export * from './StructureRepository';
 export * from './EmployeeRepository';

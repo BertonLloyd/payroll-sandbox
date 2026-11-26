@@ -16,7 +16,7 @@ export interface PaySlip extends AuditFields {
   year: number;
   month: number;
   structureId: string;
-  lines: PaySlipLine;
+  lines: PaySlipLine[];
   gross: number; // 应发合计
   totalDeduction: number; // 扣除合计（含个税）
   tax: number;

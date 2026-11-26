@@ -1,6 +1,7 @@
 // 集合定义与引擎路由：配置类小数据走 localStorage，大块历史数据走 IndexedDB
 
 export const COLLECTIONS = {
+  schemes: 'schemes',
   components: 'components',
   structures: 'structures',
   employees: 'employees',
@@ -14,6 +15,7 @@ export type CollectionName =
   (typeof COLLECTIONS)[keyof typeof COLLECTIONS];
 
 const LOCAL: CollectionName[] = [
+  COLLECTIONS.schemes,
   COLLECTIONS.components,
   COLLECTIONS.structures,
   COLLECTIONS.employees,
