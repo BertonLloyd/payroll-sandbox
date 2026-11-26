@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -35,8 +35,20 @@ jobs:
         env:
           NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
 
-      - name: Build
-        run: npm run build:gh
+      - name: Build (capture log)
+        run: |
+          set +e
+          npm run build:gh > build.log 2>&1
+          echo "code=$?" | tee -a build.log
+          exit 0
+
+      - name: Push build log back to repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add build.log
+          git commit -m "diagnostic: capture build log"
+          git push
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
