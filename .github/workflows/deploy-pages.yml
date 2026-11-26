@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   pages: write
   id-token: write
 
@@ -26,21 +26,13 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install dependencies (capture log)
-        id: install
-        run: |
-          set +e
-          npm install --registry=https://registry.npmjs.org/ --no-audit --no-fund > install.log 2>&1
-          echo "code=$?" | tee -a install.log
-          exit 0
+      - name: Fix package.json version range
+        run: sed -i 's#"@radix-ui/react-label": "^1.1.14"#"@radix-ui/react-label": "^2.1.7"#g' package.json
 
-      - name: Push install log back to repo
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add install.log
-          git commit -m "diagnostic: capture npm install log"
-          git push
+      - name: Install dependencies
+        run: npm install --registry=https://registry.npmjs.org/ --no-audit --no-fund
+        env:
+          NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
 
       - name: Build
         run: npm run build:gh
