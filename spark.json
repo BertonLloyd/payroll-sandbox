@@ -1,0 +1,25 @@
+{
+  "app": {
+    "id": "app_17jrx8dspmk",
+    "online_url": "https://4m2a4g182zc3w.doubao.link/app/app_17jrx8dspmk"
+  },
+  "build": {
+    "command": [
+      "npm",
+      "run",
+      "build:spark"
+    ],
+    "output": "dist/output",
+    "output_cdn": "dist/output_resource"
+  },
+  "dev": {
+    "command": [
+      "npm",
+      "run",
+      "dev"
+    ],
+    "port": 8001
+  },
+  "stack": "react-standard-webapp",
+  "version": "0.1.3"
+}
