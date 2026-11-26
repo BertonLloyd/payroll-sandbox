@@ -11,14 +11,15 @@ export interface PaySlipLine {
 export type PaySlipStatus = 'draft' | 'confirmed' | 'void';
 
 export interface PaySlip extends AuditFields {
+  schemeId: string; // 归属方案
   employeeId: string;
   year: number;
   month: number;
   structureId: string;
-  lines: PaySlipLine[];
+  lines: PaySlipLine;
   gross: number; // 应发合计
   totalDeduction: number; // 扣除合计（含个税）
-  tax: number; // 个税
+  tax: number;
   net: number; // 实发
   status: PaySlipStatus;
   generatedAt: number;

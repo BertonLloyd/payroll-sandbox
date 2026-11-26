@@ -1,5 +1,6 @@
 export * from './common';
 export * from './ast';
+export * from './scheme';
 export * from './component';
 export * from './structure';
 export * from './employee';

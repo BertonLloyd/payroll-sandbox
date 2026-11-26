@@ -17,6 +17,7 @@ export interface StructureItem {
 }
 
 export interface PayStructure extends AuditFields {
+  schemeId: string; // 归属方案
   name: string;
   description: string;
   status: EntityStatus;

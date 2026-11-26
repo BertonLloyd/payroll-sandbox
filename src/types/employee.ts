@@ -12,6 +12,7 @@ export interface EmployeeOverride {
 export type EmployeeStatus = 'active' | 'inactive' | 'left';
 
 export interface Employee extends AuditFields {
+  schemeId: string; // 归属方案
   empNo: string;
   name: string;
   department: string;

@@ -2,6 +2,7 @@
 import type { AuditFields } from './common';
 
 export interface MonthlyInput extends AuditFields {
+  schemeId: string; // 归属方案
   employeeId: string;
   year: number;
   month: number; // 1-12
