@@ -7,7 +7,7 @@ import type {
   PayStructure,
   TaxParamPack,
 } from '../types';
-import { mergeConfig, evalComponent } from './componentEval';
+import { mergeConfig, evalComponent, type EngineContext } from './componentEval';
 import { collectConfigDeps } from './collectDeps';
 import { topoSort } from './topoSort';
 import { calcSocial, calcMonthlyTax } from './tax';
@@ -75,27 +75,43 @@ export function calcPayroll(input: CalcPayrollInput): PaySlip {
   );
 
   // 构建依赖图并拓扑排序（仅统计结构内依赖）
+  const earningIds = itemIds.filter(
+    (id) => componentMap.get(id)!.nature === 'earning',
+  );
   const deps = new Map<string, string[]>();
   for (const id of itemIds) {
-    deps.set(
-      id,
-      collectConfigDeps(resolvedConfigs.get(id)!).filter((d) =>
-        itemIds.includes(d),
-      ),
+    const cfg = resolvedConfigs.get(id)!;
+    const depSet = new Set(
+      collectConfigDeps(cfg).filter((d) => itemIds.includes(d)),
     );
+    // 病假基数取满勤应发时，考勤组件需在全部加项之后计算，保证取值完整
+    if (cfg.kind === 'attendance' && cfg.sickBaseMode === 'gross') {
+      earningIds.forEach((eid) => depSet.add(eid));
+    }
+    deps.set(id, [...depSet]);
   }
   const order = topoSort(itemIds, deps);
 
   // 计算上下文
   const results = new Map<string, number>();
-  const ctx = {
+  let standardGross = 0;
+  const ctx: EngineContext = {
     getComponent: (id: string) => results.get(id),
     getInput: (key: string) => inputValues[key],
+    getStandardGross: () => standardGross,
+    getHireDate: () => employee.hireDate,
+    getPeriod: () => ({ year, month }),
   };
 
   for (const id of order) {
-    const value = evalComponent(resolvedConfigs.get(id)!, ctx);
-    results.set(id, round2(value));
+    const value = evalComponent(id, resolvedConfigs.get(id)!, ctx);
+    const rounded = round2(value);
+    results.set(id, rounded);
+    const component = componentMap.get(id)!;
+    // 满勤标准应发不含“仅作基数”的组件（如销售额）
+    if (component.nature === 'earning' && !component.excludeFromTotal) {
+      standardGross += rounded;
+    }
   }
 
   // 组装组件行
@@ -106,15 +122,17 @@ export function calcPayroll(input: CalcPayrollInput): PaySlip {
       name: component.name,
       nature: component.nature,
       amount: results.get(id)!,
+      excludeFromTotal: component.excludeFromTotal ?? false,
     };
   });
 
-  // 加项 / 扣项汇总
+  // 加项 / 扣项汇总（跳过仅作基数的组件）
   let gross = 0;
   let pretaxComponentDeduction = 0;
   let componentDeductionTotal = 0;
   for (const id of itemIds) {
     const component = componentMap.get(id)!;
+    if (component.excludeFromTotal) continue;
     const amount = results.get(id)!;
     if (component.nature === 'earning') {
       gross += amount;
