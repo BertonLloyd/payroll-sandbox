@@ -1,6 +1,27 @@
 // Excel 导入导出：员工花名册、工资条导出，员工导入解析
 import * as XLSX from 'xlsx';
-import type { Employee, PaySlip } from '../types';
+import type { Employee, PaySlip, PaySlipStatus } from '../types';
+
+const PAYSLIP_STATUS_LABEL: Record<PaySlipStatus, string> = {
+  draft: '草稿',
+  confirmed: '已确认',
+  void: '已作废',
+};
+
+// 同一员工同一月去重；已确认优先于草稿
+export function dedupeSlips(slips: PaySlip[]): PaySlip[] {
+  const picked = new Map<string, PaySlip>();
+  for (const slip of slips) {
+    const key = `${slip.employeeId}-${slip.year}-${slip.month}`;
+    const existing = picked.get(key);
+    if (!existing) {
+      picked.set(key, slip);
+    } else if (existing.status !== 'confirmed' && slip.status === 'confirmed') {
+      picked.set(key, slip);
+    }
+  }
+  return [...picked.values()];
+}
 
 export function exportEmployeesExcel(employees: Employee[]): void {
   const rows = employees.map((e) => ({
@@ -20,30 +41,70 @@ export function exportEmployeesExcel(employees: Employee[]): void {
 
 export function exportPayslipsExcel(
   slips: PaySlip[],
-  nameOf: (employeeId: string) => string,
+  employees: Employee[],
 ): void {
-  const rows = slips.map((s) => ({
-    姓名: nameOf(s.employeeId),
-    年月: `${s.year}-${s.month}`,
-    应发: s.gross,
-    个税: s.tax,
-    扣除合计: s.totalDeduction,
-    实发: s.net,
-    状态: s.status,
-  }));
-  const ws = XLSX.utils.json_to_sheet(rows);
+  const rows = dedupeSlips(slips);
+  const employeeMap = new Map(employees.map((e) => [e.id, e]));
+
+  // 收集全部组件列：按首次出现顺序，记录 componentId 与显示名
+  const componentOrder: string[] = [];
+  const componentName = new Map<string, string>();
+  for (const slip of rows) {
+    for (const line of slip.lines) {
+      if (!componentName.has(line.componentId)) {
+        componentOrder.push(line.componentId);
+        componentName.set(line.componentId, line.name);
+      }
+    }
+  }
+
+  const header = [
+    '工号',
+    '姓名',
+    '部门',
+    '岗位',
+    '职级',
+    '年月',
+    ...componentOrder.map((id) => componentName.get(id)!),
+    '应发合计',
+    '扣除合计',
+    '实发',
+    '状态',
+  ];
+
+  const body = rows.map((slip) => {
+    const employee = employeeMap.get(slip.employeeId);
+    const amountByComponent = new Map(
+      slip.lines.map((line) => [line.componentId, line.amount]),
+    );
+    return [
+      employee?.empNo ?? '',
+      employee?.name ?? slip.employeeId,
+      employee?.department ?? '',
+      employee?.position ?? '',
+      employee?.level ?? '',
+      `${slip.year}-${String(slip.month).padStart(2, '0')}`,
+      ...componentOrder.map((id) => amountByComponent.get(id) ?? 0),
+      slip.gross,
+      slip.totalDeduction,
+      slip.net,
+      PAYSLIP_STATUS_LABEL[slip.status],
+    ];
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet([header, ...body]);
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, '工资条');
-  XLSX.writeFile(wb, '工资条汇总.xlsx');
+  XLSX.utils.book_append_sheet(wb, ws, '工资明细');
+  XLSX.writeFile(wb, '工资条明细表.xlsx');
 }
 
 export interface ImportedEmployeeRow {
-  工号?: string;
+ 工号?: string;
   姓名?: string;
   部门?: string;
   岗位?: string;
   职级?: string;
-  入职日期?: string;
+ 入职日期?: string;
 }
 
 export function parseEmployeesExcel(file: File): Promise<ImportedEmployeeRow[]> {
