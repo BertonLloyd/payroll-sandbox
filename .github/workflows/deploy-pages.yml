@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   pages: write
   id-token: write
 
@@ -30,25 +30,18 @@ jobs:
         run: |
           sed -i 's#"@radix-ui/react-label": "^1.1.14"#"@radix-ui/react-label": "^2.1.7"#g' package.json
 
+      - name: Fix JSX closing tags
+        run: |
+          sed -i '138s#</Tooltip>#</TooltipTrigger>#' src/pages/ComponentsPage.tsx
+          sed -i '232s#</CardContent>#</CardHeader>#' src/pages/ReportsPage.tsx
+
       - name: Install dependencies
         run: npm install --registry=https://registry.npmjs.org/ --no-audit --no-fund
         env:
           NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
 
-      - name: Build (capture log)
-        run: |
-          set +e
-          npm run build:gh > build.log 2>&1
-          echo "code=$?" | tee -a build.log
-          exit 0
-
-      - name: Push build log back to repo
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add build.log
-          git commit -m "diagnostic: capture build log"
-          git push
+      - name: Build
+        run: npm run build:gh
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
