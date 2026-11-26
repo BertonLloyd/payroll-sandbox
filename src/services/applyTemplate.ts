@@ -26,11 +26,11 @@ function remapAst(node: BlockNode, map: Map<string, string>): BlockNode {
     case 'compare':
       return {
         ...node,
-        left: remapRef(node.left, map),
+        left: remapAst(node.left, map),
         right:
           typeof node.right === 'number'
             ? node.right
-            : remapRef(node.right, map),
+            : remapAst(node.right, map),
       };
     case 'logic':
       return {
@@ -73,19 +73,24 @@ function remapConfig(
   }
 }
 
-export async function applyTemplate(template: PayTemplate): Promise<void> {
+export async function applyTemplate(
+  template: PayTemplate,
+  schemeId: string,
+): Promise<void> {
   const sm = getStorageManager();
   const { components, structures, sampleEmployees } = template.payload;
+  const now = Date.now();
 
   // 1. 组件 id 映射 + 重写内部引用
   const componentIdMap = new Map<string, string>();
   components.forEach((c) => componentIdMap.set(c.id, uid()));
   const newComponents: PayComponent[] = components.map((c) => ({
     ...c,
+    schemeId,
     id: componentIdMap.get(c.id)!,
     calcConfig: remapConfig(c.calcConfig, componentIdMap),
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
+    createdAt: now,
+    updatedAt: now,
   }));
 
   // 2. 结构 id 映射，重写分组/条目引用
@@ -107,23 +112,25 @@ export async function applyTemplate(template: PayTemplate): Promise<void> {
     }));
     return {
       ...s,
+      schemeId,
       id: structureIdMap.get(s.id)!,
       groups,
       items,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+      createdAt: now,
+      updatedAt: now,
     };
   });
 
   // 3. 员工重写结构引用
   const newEmployees: Employee[] = sampleEmployees.map((e) => ({
     ...e,
+    schemeId,
     id: uid(),
     structureId:
       structureIdMap.get(e.structureId) ?? e.structureId,
     overrides: [],
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
+    createdAt: now,
+    updatedAt: now,
   }));
 
   // 4. 追加到现有集合
