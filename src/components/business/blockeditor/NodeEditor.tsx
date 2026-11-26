@@ -1,4 +1,4 @@
-// 递归节点编辑器：统一处理五种 BlockNode，子节点递归引用自身
+// 递归节点编辑器：统一处理五种 BlockNode，子节点递归引用自身，透传外部输入可选项
 import { Plus, Trash2 } from 'lucide-react';
 import type {
   BlockNode,
@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from '../../ui/select';
 import { parseNumber } from '../../../lib/format';
-import { RefEditor, type RefOption } from './RefEditor';
+import { RefEditor, type InputOption, type RefOption } from './RefEditor';
 
 const zeroRef: RefNode = { type: 'ref', refType: 'constant', value: 0 };
 
@@ -63,11 +63,13 @@ export function NodeEditor({
   onChange,
   onRemove,
   components,
+  inputOptions,
 }: {
   value: BlockNode;
   onChange: (node: BlockNode) => void;
   onRemove?: () => void;
   components: RefOption[];
+  inputOptions: InputOption[];
 }) {
   return (
     <div className="space-y-2 rounded-md border border-border bg-card p-2.5">
@@ -100,7 +102,12 @@ export function NodeEditor({
       </div>
 
       {value.type === 'ref' && (
-        <RefEditor value={value} components={components} onChange={onChange} />
+        <RefEditor
+          value={value}
+          components={components}
+          inputOptions={inputOptions}
+          onChange={onChange}
+        />
       )}
 
       {value.type === 'math' && (
@@ -125,6 +132,7 @@ export function NodeEditor({
               key={i}
               value={operand}
               components={components}
+              inputOptions={inputOptions}
               onChange={(node) =>
                 onChange({
                   ...value,
@@ -176,6 +184,7 @@ export function NodeEditor({
             <RefEditor
               value={value.left}
               components={components}
+              inputOptions={inputOptions}
               onChange={(left) => onChange({ ...value, left })}
             />
           </div>
@@ -194,8 +203,7 @@ export function NodeEditor({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() =>
-                    onChange({ ...value, right: zeroRef })}
+                  onClick={() => onChange({ ...value, right: zeroRef })}
                 >
                   改引用
                 </Button>
@@ -205,6 +213,7 @@ export function NodeEditor({
                 <RefEditor
                   value={value.right}
                   components={components}
+                  inputOptions={inputOptions}
                   onChange={(right) => onChange({ ...value, right })}
                 />
                 <Button
@@ -239,6 +248,7 @@ export function NodeEditor({
               key={i}
               value={operand}
               components={components}
+              inputOptions={inputOptions}
               onChange={(node) =>
                 onChange({
                   ...value,
@@ -299,6 +309,7 @@ export function NodeEditor({
               <NodeEditor
                 value={branch.when}
                 components={components}
+                inputOptions={inputOptions}
                 onChange={(node) =>
                   onChange({
                     ...value,
@@ -311,6 +322,7 @@ export function NodeEditor({
               <NodeEditor
                 value={branch.then}
                 components={components}
+                inputOptions={inputOptions}
                 onChange={(node) =>
                   onChange({
                     ...value,
@@ -343,6 +355,7 @@ export function NodeEditor({
             <NodeEditor
               value={value.else}
               components={components}
+              inputOptions={inputOptions}
               onChange={(node) => onChange({ ...value, else: node })}
             />
           </div>
