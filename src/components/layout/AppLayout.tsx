@@ -33,8 +33,7 @@ export function AppLayout() {
                         isActive
                           ? 'bg-sidebar-accent font-medium text-sidebar-accent-foreground'
                           : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground',
-                      ].join(' ')
-                    }
+                      ].join(' ')}
                   >
                     <item.icon className="size-4 shrink-0" />
                     {item.label}
