@@ -25,7 +25,7 @@ export function StructureOverrideDialog({
   onSave,
 }: {
   open: boolean;
-  onOpenChange: (open: boolean): void;
+  onOpenChange: (open: boolean) => void;
   component: PayComponent;
   item: StructureItem;
   onSave(override: Partial<CalcConfig> | undefined): void;
