@@ -1,4 +1,4 @@
-// 新手向导全局状态：4 步任务清单，完成情况由真实数据自动判定；跳过/算薪状态持久化
+// 新手向导全局状态：5 步任务清单，完成情况由真实数据自动判定；跳过/算薪状态持久化
 import {
   createContext,
   useCallback,
@@ -10,11 +10,14 @@ import {
 } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { usePayroll } from '@/store';
+import { useScheme } from '@/store/SchemeProvider';
+import { collectAllInputFields } from '@/lib/inputFields';
 
 export type SpotlightKey =
   | 'new-component'
   | 'new-structure'
   | 'new-employee'
+  | 'input-data'
   | 'run-payroll';
 
 interface StepDef {
@@ -65,6 +68,13 @@ const STEP_DEFS: StepDef[] = [
     spotlight: 'new-employee',
   },
   {
+    id: 'input',
+    title: '录入外部数据',
+    hint: '在算薪工作台录入销售额、绩效等',
+    path: '/payroll',
+    spotlight: 'input-data',
+  },
+  {
     id: 'payroll',
     title: '算薪并生成工资表',
     hint: '批量算薪、确认工资条',
@@ -101,6 +111,7 @@ const OnboardingContext = createContext<OnboardingContextValue | null>(null);
 
 export function OnboardingProvider({ children }: { children: ReactNode }) {
   const { components, structures, employees } = usePayroll();
+  const { currentSchemeId } = useScheme();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -112,6 +123,15 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const [spotlight, setSpotlight] = useState<SpotlightKey | null>(null);
 
+  // 当前方案是否存在需要录入的组件（external/performance/attendance）：没有则录入步骤自动视为完成
+  const hasInputFields = useMemo(
+    () =>
+      collectAllInputFields(
+        components.filter((c) => c.schemeId === currentSchemeId),
+      ).length > 0,
+    [components, currentSchemeId],
+  );
+
   const steps = useMemo<OnboardingStep[]>(
     () =>
       STEP_DEFS.map((def) => ({
@@ -120,9 +140,16 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
           (def.id === 'component' && components.length > 0) ||
           (def.id === 'structure' && structures.length > 0) ||
           (def.id === 'employee' && employees.length > 0) ||
+          (def.id === 'input' && (!hasInputFields || hasRunPayroll)) ||
           (def.id === 'payroll' && hasRunPayroll),
       })),
-    [components.length, structures.length, employees.length, hasRunPayroll],
+    [
+      components.length,
+      structures.length,
+      employees.length,
+      hasInputFields,
+      hasRunPayroll,
+    ],
   );
 
   const allDone = useMemo(() => steps.every((s) => s.done), [steps]);
