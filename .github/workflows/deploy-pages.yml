@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   pages: write
   id-token: write
 
@@ -26,43 +26,11 @@ jobs:
         with:
           node-version: 22
 
-      - name: Fix package.json version range
-        run: |
-          sed -i 's#"@radix-ui/react-label": "^1.1.14"#"@radix-ui/react-label": "^2.1.7"#g' package.json
-
-      - name: Fix JSX closing tags
-        run: |
-          sed -i '138s#</Tooltip>#</TooltipTrigger>#' src/pages/ComponentsPage.tsx
-          sed -i '232s#</CardContent>#</CardHeader>#' src/pages/ReportsPage.tsx
-
       - name: Install dependencies
-        run: npm install --registry=https://registry.npmjs.org/ --no-audit --no-fund
-        env:
-          NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
+        run: npm install --no-audit --no-fund
 
       - name: Build
         run: npm run build:gh
-
-      - name: Enable Pages via API
-        run: |
-          code=$(curl -sS -X POST \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/repos/${{ github.repository }}/pages" \
-            -d '{"build_type":"workflow"}' -o enable-resp.json -w "%{http_code}" || true)
-          echo "http_code=$code" | tee enable-http.txt
-          echo "--- response ---"
-          cat enable-resp.json || true
-          echo
-
-      - name: Report enable response
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add enable-resp.json enable-http.txt
-          git commit -m "诊断: 回传 Pages 启用 API 响应"
-          git push
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
