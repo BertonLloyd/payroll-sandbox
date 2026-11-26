@@ -1,5 +1,6 @@
 // 员工档案新建/编辑弹窗：基本字段 + 挂接薪酬结构
 import { useEffect, useState } from 'react';
+import { SlidersHorizontal } from 'lucide-react';
 import type { Employee, EmployeeStatus } from '../../../types';
 import { usePayroll } from '../../../store';
 import { Button } from '../../ui/button';
@@ -45,11 +46,13 @@ export function EmployeeFormDialog({
   onOpenChange,
   editing,
   onSubmit,
+  onEditOverride,
 }: {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onOpenChange(open: boolean): void;
   editing: Employee | null;
   onSubmit(data: Employee): Promise<void>;
+  onEditOverride?(employee: Employee): void;
 }) {
   const { structures } = usePayroll();
   const [draft, setDraft] = useState<Employee>(blank());
@@ -147,6 +150,17 @@ export function EmployeeFormDialog({
             </Select>
           </div>
         </div>
+
+        {editing && (
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={() => onEditOverride?.(editing)}
+          >
+            <SlidersHorizontal className="size-4" /> 个人覆盖设置
+          </Button>
+        )}
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>

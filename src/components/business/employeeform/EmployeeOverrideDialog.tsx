@@ -1,5 +1,5 @@
-// 员工个人覆盖弹窗：维护按月份生效的组件覆盖，不污染结构与组件默认值
-import { useEffect, useState } from 'react';
+// 员工个人覆盖弹窗：维护按月份生效的组件覆盖，新增后直接配置，不污染结构与组件默认值
+import { useEffect, useMemo, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import type {
   CalcConfig,
@@ -8,6 +8,7 @@ import type {
   StructureItem,
 } from '../../../types';
 import { usePayroll } from '../../../store';
+import { collectAllInputFields } from '../../../lib/inputFields';
 import { Button } from '../../ui/button';
 import {
   Dialog,
@@ -51,18 +52,33 @@ export function EmployeeOverrideDialog({
   }, [open, employee]);
 
   const componentMap = new Map(components.map((c) => [c.id, c]));
+  const refOptions = useMemo(
+    () => components.map((c) => ({ id: c.id, name: c.name })),
+    [components],
+  );
+  const inputOptions = useMemo(
+    () =>
+      collectAllInputFields(components).map((f) => ({
+        key: f.key,
+        label: f.label,
+      })),
+    [components],
+  );
 
+  // 新增覆盖并立即打开配置，避免产生空覆盖
   function addOverride() {
     if (!newComponentId || !newMonth) return;
-    setOverrides((prev) => [
-      ...prev,
+    const next = [
+      ...overrides,
       {
         id: `ov-${Date.now()}`,
         componentId: newComponentId,
         effectiveMonth: newMonth,
         overrideConfig: {},
       },
-    ]);
+    ];
+    setOverrides(next);
+    setEditingIndex(next.length - 1);
     setNewComponentId('');
     setNewMonth('');
   }
@@ -90,6 +106,10 @@ export function EmployeeOverrideDialog({
           <DialogHeader>
             <DialogTitle>个人覆盖 · {employee.name}</DialogTitle>
           </DialogHeader>
+
+          <p className="rounded-md bg-muted/50 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+            覆盖仅对该员工、所选月份（含之后）生效，不影响其他员工；优先级高于薪酬结构与组件默认。
+          </p>
 
           <div className="space-y-2">
             {overrides.map((ov, i) => (
@@ -146,7 +166,7 @@ export function EmployeeOverrideDialog({
                 onChange={(e) => setNewMonth(e.target.value)}
               />
               <Button variant="outline" onClick={addOverride}>
-                <Plus className="size-4" />
+                <Plus className="size-4" /> 添加
               </Button>
             </div>
           </div>
@@ -173,7 +193,9 @@ export function EmployeeOverrideDialog({
           onOpenChange={(o) => !o && setEditingIndex(null)}
           component={editingComponent}
           item={fakeItem}
-          onSave={(override) => {
+          refOptions={refOptions}
+          inputOptions={inputOptions}
+          onSave={async (override) => {
             setOverrides((prev) =>
               prev.map((ov, j) =>
                 j === editingIndex
