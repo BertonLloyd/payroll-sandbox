@@ -20,6 +20,7 @@ import type {
 import { BaseRepository } from '../repositories/BaseRepository';
 import { getRepositories } from '../repositories/factory';
 import { ensureSeedData } from '../data/seed';
+import { runMigrations } from '../services/migration';
 
 interface EntityOps<T extends AuditFields> {
   create(input: Omit<T, keyof AuditFields>): Promise<T>;
@@ -31,7 +32,7 @@ interface EntityOps<T extends AuditFields> {
 
 function buildOps<T extends AuditFields>(
   repo: BaseRepository<T>,
-  setItems: Dispatch<SetStateAction<T[]>>,
+  setItems: Dispatch<SetStateAction<T>>,
 ): EntityOps<T> {
   return {
     async create(input) {
@@ -116,6 +117,7 @@ export function PayrollProvider({ children }: { children: ReactNode }) {
     (async () => {
       try {
         await ensureSeedData();
+        await runMigrations();
         await refresh();
         if (!cancelled) setLoading(false);
       } catch (e) {
