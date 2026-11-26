@@ -26,11 +26,11 @@ function remapAst(node: BlockNode, map: Map<string, string>): BlockNode {
     case 'compare':
       return {
         ...node,
-        left: remapAst(node.left, map),
+        left: remapRef(node.left, map),
         right:
           typeof node.right === 'number'
             ? node.right
-            : remapAst(node.right, map),
+            : remapRef(node.right, map),
       };
     case 'logic':
       return {
