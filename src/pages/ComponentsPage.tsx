@@ -135,7 +135,7 @@ function GroupTable({
                             >
                               <Trash2 className="size-4" />
                             </Button>
-                          </Tooltip>
+                          </TooltipTrigger>
                           <TooltipContent>删除</TooltipContent>
                         </Tooltip>
                       </div>
