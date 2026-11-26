@@ -10,6 +10,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { usePayroll } from '@/store';
+import { useScheme } from '@/store/SchemeProvider';
 import type {
   CalcConfig,
   Employee,
@@ -41,15 +42,26 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { StructureOverrideDialog } from '@/components/business/structureform/StructureOverrideDialog';
+import { useOnboarding } from '@/components/business/onboarding';
 import { toast } from 'sonner';
 
 export default function StructuresPage() {
   const {
-    structures,
-    components,
+    structures: allStructures,
+    components: allComponents,
     paramPacks,
     structureOps,
   } = usePayroll();
+  const { currentSchemeId } = useScheme();
+  const { spotlight, clearSpotlight } = useOnboarding();
+
+  // 仅当前方案的结构与组件
+  const structures = allStructures.filter(
+    (s) => s.schemeId === currentSchemeId,
+  );
+  const components = allComponents.filter(
+    (c) => c.schemeId === currentSchemeId,
+  );
 
   const [selectedId, setSelectedId] = useState<string | null>(
     structures[0]?.id ?? null,
@@ -79,6 +91,7 @@ export default function StructuresPage() {
     if (!pack) return null;
     const tempEmployee: Employee = {
       id: '__preview__',
+      schemeId: currentSchemeId ?? '',
       empNo: '',
       name: '预览',
       department: '',
@@ -95,6 +108,7 @@ export default function StructuresPage() {
     };
     try {
       return calcPayroll({
+        schemeId: currentSchemeId ?? '',
         employee: tempEmployee,
         structure: selected,
         components,
@@ -114,8 +128,13 @@ export default function StructuresPage() {
   }
 
   async function createStructure() {
+    if (!currentSchemeId) {
+      toast.error('请先选择或创建一个方案');
+      return;
+    }
     const groupId = uid();
     const created = await structureOps.create({
+      schemeId: currentSchemeId,
       name: '新薪酬结构',
       description: '',
       status: 'active',
@@ -172,7 +191,15 @@ export default function StructuresPage() {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm">薪酬结构</CardTitle>
-            <Button size="icon" variant="outline" onClick={createStructure}>
+            <Button
+              size="icon"
+              variant="outline"
+              className={spotlight === 'new-structure' ? 'onboarding-spotlight' : ''}
+              onClick={() => {
+                clearSpotlight();
+                createStructure();
+              }}
+            >
               <Plus className="size-4" />
             </Button>
           </div>
@@ -393,7 +420,7 @@ export default function StructuresPage() {
               确认删除
             </AlertDialogAction>
           </AlertDialogFooter>
-        </AlertDialog>
+        </AlertDialogContent>
       </AlertDialog>
     </div>
   );
