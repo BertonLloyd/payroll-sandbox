@@ -1,5 +1,5 @@
-// 报表中心：月度成本汇总、部门/结构成本、固浮比，支持导出
-import { useEffect, useMemo, useState } from 'react';
+// 报表中心：按方案隔离，月度成本汇总、部门/结构成本、固浮比，图表横向可滚动，支持导出
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   Bar,
   BarChart,
@@ -14,6 +14,7 @@ import {
 } from 'recharts';
 import { Download } from 'lucide-react';
 import { usePayroll } from '@/store';
+import { useScheme } from '@/store/SchemeProvider';
 import { getStorageManager } from '@/storage/factory';
 import type { PaySlip } from '@/types';
 import {
@@ -39,18 +40,44 @@ const PRIMARY = '#0f76a8';
 const LIGHT = '#6fb3d2';
 const MUTED = '#9aa7b0';
 
+// 图表横向滚动容器：内容最小宽度，超出出现横拉条
+function ChartScroll({
+  minWidth,
+  children,
+}: {
+  minWidth: number;
+  children: ReactNode;
+}) {
+  return (
+    <div className="overflow-x-auto">
+      <div style={{ minWidth }}>{children}</div>
+    </div>
+  );
+}
+
 export default function ReportsPage() {
   const { employees, structures, components } = usePayroll();
+  const { currentSchemeId } = useScheme();
   const [paySlips, setPaySlips] = useState<PaySlip[]>([]);
 
   useEffect(() => {
     loadAllPayslips(getStorageManager()).then(setPaySlips);
   }, []);
 
+  // 当前方案的员工/结构
+  const schemeEmployees = useMemo(
+    () => employees.filter((e) => e.schemeId === currentSchemeId),
+    [employees, currentSchemeId],
+  );
+  const schemeStructures = useMemo(
+    () => structures.filter((s) => s.schemeId === currentSchemeId),
+    [structures, currentSchemeId],
+  );
+
   const periods = useMemo(() => {
     const set = new Set(
       paySlips
-        .filter((s) => s.status !== 'void')
+        .filter((s) => s.schemeId === currentSchemeId && s.status !== 'void')
         .map((s) => `${s.year}-${s.month}`),
     );
     return [...set].sort((a, b) => {
@@ -58,30 +85,34 @@ export default function ReportsPage() {
       const [by, bm] = b.split('-').map(Number);
       return by - ay || bm - am;
     });
-  }, [paySlips]);
+  }, [paySlips, currentSchemeId]);
 
   const [period, setPeriod] = useState<string>('');
 
   useEffect(() => {
     if (!period && periods[0]) setPeriod(periods[0]);
+    if (period && !periods.includes(period)) setPeriod(periods[0] ?? '');
   }, [period, periods]);
 
   const slips = useMemo(
     () =>
       paySlips.filter(
-        (s) => s.status !== 'void' && `${s.year}-${s.month}` === period,
+        (s) =>
+          s.schemeId === currentSchemeId &&
+          s.status !== 'void' &&
+          `${s.year}-${s.month}` === period,
       ),
-    [paySlips, period],
+    [paySlips, currentSchemeId, period],
   );
 
   const summary = useMemo(() => summarize(slips), [slips]);
   const byDept = useMemo(
-    () => groupByDepartment(slips, employees),
-    [slips, employees],
+    () => groupByDepartment(slips, schemeEmployees),
+    [slips, schemeEmployees],
   );
   const byStructure = useMemo(
-    () => groupByStructure(slips, employees, structures),
-    [slips, employees, structures],
+    () => groupByStructure(slips, schemeEmployees, schemeStructures),
+    [slips, schemeEmployees, schemeStructures],
   );
   const ff = useMemo(
     () => fixedFloatingRatio(slips, components),
@@ -96,7 +127,7 @@ export default function ReportsPage() {
   if (periods.length === 0) {
     return (
       <p className="py-12 text-center text-sm text-muted-foreground">
-        暂无已生成的工资条，请先到算薪工作台算薪
+        当前方案暂无已生成的工资条，请先到算薪工作台算薪
       </p>
     );
   }
@@ -125,12 +156,7 @@ export default function ReportsPage() {
         </Select>
         <Button
           variant="outline"
-          onClick={() =>
-            exportPayslipsExcel(
-              slips,
-              (id) => employees.find((e) => e.id === id)?.name ?? id,
-            )
-          }
+          onClick={() => exportPayslipsExcel(slips, schemeEmployees)}
         >
           <Download className="size-4" /> 导出工资条 Excel
         </Button>
@@ -155,16 +181,18 @@ export default function ReportsPage() {
             <CardTitle className="text-base">各部门应发 / 实发</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={byDept}>
-                <XAxis dataKey="key" fontSize={12} tickLine={false} />
-                <YAxis fontSize={12} tickLine={false} />
-                <Tooltip formatter={(v) => formatMoney(Number(v))} />
-                <Legend />
-                <Bar dataKey="gross" name="应发" fill={PRIMARY} radius={[3, 3, 0, 0]} />
-                <Bar dataKey="net" name="实发" fill={LIGHT} radius={[3, 3, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <ChartScroll minWidth={Math.max(480, byDept.length * 110)}>
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={byDept}>
+                  <XAxis dataKey="key" fontSize={12} tickLine={false} />
+                  <YAxis fontSize={12} tickLine={false} />
+                  <Tooltip formatter={(v) => formatMoney(Number(v))} />
+                  <Legend />
+                  <Bar dataKey="gross" name="应发" fill={PRIMARY} radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="net" name="实发" fill={LIGHT} radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartScroll>
           </CardContent>
         </Card>
 
@@ -176,22 +204,24 @@ export default function ReportsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={260}>
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  dataKey="value"
-                  nameKey="name"
-                  innerRadius={60}
-                  outerRadius={90}
-                >
-                  <Cell fill={PRIMARY} />
-                  <Cell fill={MUTED} />
-                </Pie>
-                <Tooltip formatter={(v) => formatMoney(Number(v))} />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
+            <ChartScroll minWidth={360}>
+              <ResponsiveContainer width="100%" height={260}>
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={60}
+                    outerRadius={90}
+                  >
+                    <Cell fill={PRIMARY} />
+                    <Cell fill={MUTED} />
+                  </Pie>
+                  <Tooltip formatter={(v) => formatMoney(Number(v))} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </ChartScroll>
           </CardContent>
         </Card>
       </div>
@@ -201,20 +231,22 @@ export default function ReportsPage() {
           <CardTitle className="text-base">各薪酬结构成本</CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={byStructure} layout="vertical">
-              <XAxis type="number" fontSize={12} tickLine={false} />
-              <YAxis
-                type="category"
-                dataKey="key"
-                fontSize={12}
-                tickLine={false}
-                width={100}
-              />
-              <Tooltip formatter={(v) => formatMoney(Number(v))} />
-              <Bar dataKey="gross" name="应发" fill={PRIMARY} radius={[0, 3, 3, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <ChartScroll minWidth={Math.max(480, byStructure.length * 180)}>
+            <ResponsiveContainer width="100%" height={240}>
+              <BarChart data={byStructure} layout="vertical">
+                <XAxis type="number" fontSize={12} tickLine={false} />
+                <YAxis
+                  type="category"
+                  dataKey="key"
+                  fontSize={12}
+                  tickLine={false}
+                  width={100}
+                />
+                <Tooltip formatter={(v) => formatMoney(Number(v))} />
+                <Bar dataKey="gross" name="应发" fill={PRIMARY} radius={[0, 3, 3, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartScroll>
         </CardContent>
       </Card>
     </div>
