@@ -24,7 +24,12 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
+
+      # 仓库 .npmrc 默认指向 npmmirror（供本地国内网络加速）；
+      # CI 在海外 runner 上改用官方 registry，避免镜像拉取失败
+      - name: Use official npm registry
+        run: npm config set registry https://registry.npmjs.org/
 
       - name: Install dependencies
         run: npm install
