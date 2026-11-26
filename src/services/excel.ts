@@ -1,6 +1,7 @@
 // Excel 导入导出：员工花名册、工资条导出，员工导入解析
 import * as XLSX from 'xlsx';
 import type { Employee, PaySlip, PaySlipStatus } from '../types';
+import type { InputFieldSpec } from '../lib/inputFields';
 
 const PAYSLIP_STATUS_LABEL: Record<PaySlipStatus, string> = {
   draft: '草稿',
@@ -10,7 +11,7 @@ const PAYSLIP_STATUS_LABEL: Record<PaySlipStatus, string> = {
 
 // 同一员工同一月去重；已确认优先于草稿
 export function dedupeSlips(slips: PaySlip[]): PaySlip[] {
-  const picked = new Map<string, PaySlip>();
+  const picked = new Map<string, string>();
   for (const slip of slips) {
     const key = `${slip.employeeId}-${slip.year}-${slip.month}`;
     const existing = picked.get(key);
@@ -99,12 +100,12 @@ export function exportPayslipsExcel(
 }
 
 export interface ImportedEmployeeRow {
- 工号?: string;
+  工号?: string;
   姓名?: string;
   部门?: string;
   岗位?: string;
   职级?: string;
- 入职日期?: string;
+  入职日期?: string;
 }
 
 export function parseEmployeesExcel(file: File): Promise<ImportedEmployeeRow[]> {
@@ -115,6 +116,45 @@ export function parseEmployeesExcel(file: File): Promise<ImportedEmployeeRow[]> 
         const wb = XLSX.read(reader.result, { type: 'array' });
         const ws = wb.Sheets[wb.SheetNames[0]];
         resolve(XLSX.utils.sheet_to_json(ws));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+// ===== 考勤模板下载与上传解析 =====
+
+// 下载考勤模板：预填在职员工工号、姓名，考勤列留空
+export function downloadAttendanceTemplate(
+  employees: Employee[],
+  attendanceFields: InputFieldSpec[],
+): void {
+  const header = ['工号', '姓名', ...attendanceFields.map((f) => f.label)];
+  const body = employees.map((e) => [
+    e.empNo,
+    e.name,
+    ...attendanceFields.map(() => ''),
+  ]);
+  const ws = XLSX.utils.aoa_to_sheet([header, ...body]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '考勤');
+  XLSX.writeFile(wb, '考勤导入模板.xlsx');
+}
+
+// 解析考勤 Excel：返回原始行（键为表头，含工号/姓名/各考勤列）
+export function parseAttendanceExcel(
+  file: File,
+): Promise<Record<string, unknown>[]> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const wb = XLSX.read(reader.result, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        resolve(XLSX.utils.sheet_to_json(ws, { defval: '' }));
       } catch (e) {
         reject(e);
       }
