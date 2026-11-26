@@ -46,8 +46,17 @@ export function collectConfigDeps(config: CalcConfig): string[] {
     case 'blocks':
       collectAstComponentIds(config.ast, deps);
       break;
+    case 'performance':
+      config.baseComponentIds.forEach((id) => deps.add(id));
+      break;
+    case 'attendance':
+      config.baseComponentIds.forEach((id) => deps.add(id));
+      config.sickBaseComponentIds.forEach((id) => deps.add(id));
+      break;
     case 'fixed':
     case 'external':
+    case 'fullAttendance':
+    case 'seniority':
       break;
   }
   return [...deps];
