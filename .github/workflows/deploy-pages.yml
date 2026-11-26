@@ -27,7 +27,8 @@ jobs:
           node-version: 22
 
       - name: Fix package.json version range
-        run: sed -i 's#"@radix-ui/react-label": "^1.1.14"#"@radix-ui/react-label": "^2.1.7"#g' package.json
+        run: |
+          sed -i 's#"@radix-ui/react-label": "^1.1.14"#"@radix-ui/react-label": "^2.1.7"#g' package.json
 
       - name: Install dependencies
         run: npm install --registry=https://registry.npmjs.org/ --no-audit --no-fund
