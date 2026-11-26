@@ -1,6 +1,7 @@
 // 应用外壳：左侧固定导航 + 顶部标题栏 + 主内容区
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { NAV_GROUPS, findNavItem } from './nav';
+import { SchemeSwitcher } from '@/components/business/scheme/SchemeSwitcher';
 
 export function AppLayout() {
   const location = useLocation();
@@ -46,10 +47,13 @@ export function AppLayout() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-16 shrink-0 items-center border-b bg-card px-6">
+        <header className="flex h-16 shrink-0 items-center gap-4 border-b bg-card px-6">
           <h1 className="text-base font-semibold text-foreground">
             {current?.label ?? '薪酬测算沙盘'}
           </h1>
+          <div className="ml-auto">
+            <SchemeSwitcher />
+          </div>
         </header>
         <main className="flex-1 overflow-y-auto p-6">
           <Outlet />
