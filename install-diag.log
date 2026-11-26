@@ -1,0 +1,21 @@
+npm error code ERESOLVE
+npm error ERESOLVE unable to resolve dependency tree
+npm error
+npm error While resolving: payroll-sandbox@0.1.0
+npm error Found: react@19.3.1
+npm error node_modules/react
+npm error   react@"^19.2.4" from the root project
+npm error
+npm error Could not resolve dependency:
+npm error peer react@"^16.8 || ^17.0 || ^18.0" from @radix-ui/react-select@1.2.2
+npm error node_modules/@radix-ui/react-select
+npm error   @radix-ui/react-select@"^1.1.14" from the root project
+npm error
+npm error Fix the upstream dependency conflict, or retry
+npm error this command with --force or --legacy-peer-deps
+npm error to accept an incorrect (and potentially broken) dependency resolution.
+npm error
+npm error
+npm error For a full report see:
+npm error /home/runner/.npm/_logs/2026-11-26T10_42_54_233Z-eresolve-report.txt
+npm error A complete log of this run can be found in: /home/runner/.npm/_logs/2026-11-26T10_42_54_233Z-debug-0.log
