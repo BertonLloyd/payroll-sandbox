@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { usePayroll } from '@/store';
+import { useScheme } from '@/store/SchemeProvider';
 import type { CalcType, PayComponent } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,6 +26,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { ComponentFormDialog } from '@/components/business/componentform/ComponentFormDialog';
+import { useOnboarding } from '@/components/business/onboarding';
 import { toast } from 'sonner';
 
 const CALC_LABELS: Record<CalcType, string> = {
@@ -77,7 +79,14 @@ function GroupTable({
             ) : (
               items.map((c) => (
                 <TableRow key={c.id}>
-                  <TableCell className="font-medium">{c.name}</TableCell>
+                  <TableCell>
+                    <div className="font-medium">{c.name}</div>
+                    {c.description && (
+                      <div className="mt-0.5 text-xs text-muted-foreground">
+                        {c.description}
+                      </div>
+                    )}
+                  </TableCell>
                   <TableCell className="text-muted-foreground">
                     {c.code || '—'}
                   </TableCell>
@@ -119,12 +128,18 @@ function GroupTable({
 
 export default function ComponentsPage() {
   const { components, componentOps } = usePayroll();
+  const { currentSchemeId } = useScheme();
+  const { spotlight, clearSpotlight } = useOnboarding();
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<PayComponent | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<PayComponent | null>(null);
 
-  const earnings = components.filter((c) => c.nature === 'earning');
-  const deductions = components.filter((c) => c.nature === 'deduction');
+  // 仅当前方案的组件
+  const schemeComponents = components.filter(
+    (c) => c.schemeId === currentSchemeId,
+  );
+  const earnings = schemeComponents.filter((c) => c.nature === 'earning');
+  const deductions = schemeComponents.filter((c) => c.nature === 'deduction');
 
   async function handleSubmit(data: PayComponent) {
     try {
@@ -132,6 +147,7 @@ export default function ComponentsPage() {
         await componentOps.update(editing.id, {
           name: data.name,
           code: data.code,
+          description: data.description,
           nature: data.nature,
           taxTreatment: data.taxTreatment,
           calcType: data.calcType,
@@ -142,9 +158,15 @@ export default function ComponentsPage() {
         });
         toast.success('组件已更新');
       } else {
+        if (!currentSchemeId) {
+          toast.error('请先选择或创建一个方案');
+          return;
+        }
         await componentOps.create({
+          schemeId: currentSchemeId,
           name: data.name,
           code: data.code,
+          description: data.description,
           nature: data.nature,
           taxTreatment: data.taxTreatment,
           calcType: data.calcType,
@@ -167,7 +189,9 @@ export default function ComponentsPage() {
           定义薪酬的最小计算单元，全部可编辑
         </p>
         <Button
+          className={spotlight === 'new-component' ? 'onboarding-spotlight' : ''}
           onClick={() => {
+            clearSpotlight();
             setEditing(null);
             setFormOpen(true);
           }}
