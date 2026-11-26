@@ -17,8 +17,10 @@ const audit = () => ({
 
 export function makeComponent(input: {
   id: string;
+  schemeId?: string;
   code: string;
   name: string;
+  description?: string;
   nature?: Nature;
   taxTreatment?: TaxTreatment;
   calcConfig: CalcConfig;
@@ -28,6 +30,7 @@ export function makeComponent(input: {
 }): PayComponent {
   return {
     ...audit(),
+    schemeId: input.schemeId ?? '',
     nature: 'earning',
     taxTreatment: 'pretax',
     period: 'monthly',
@@ -46,6 +49,7 @@ export function makeStructure(
   const groupId = `${id}-group`;
   return {
     ...audit(),
+    schemeId: '',
     id,
     name,
     description: '',
@@ -62,13 +66,14 @@ export function makeStructure(
 
 type EmployeeInput = Omit<
   Employee,
-  'createdAt' | 'updatedAt' | 'deleted' | 'deletedAt' | 'status' | 'overrides'
+  'createdAt' | 'updatedAt' | 'deleted' | 'deletedAt' | 'status' | 'overrides' | 'schemeId'
 > &
-  Partial<Pick<Employee, 'status' | 'overrides'>>;
+  Partial<Pick<Employee, 'status' | 'overrides' | 'schemeId'>>;
 
 export function makeEmployee(input: EmployeeInput): Employee {
   return {
     ...audit(),
+    schemeId: input.schemeId ?? '',
     status: 'active',
     overrides: [],
     ...input,

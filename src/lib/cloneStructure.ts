@@ -19,6 +19,7 @@ export function cloneStructure(source: PayStructure): StructureInput {
   }));
 
   return {
+    schemeId: source.schemeId,
     name: `${source.name} 副本`,
     description: source.description,
     status: 'active',
