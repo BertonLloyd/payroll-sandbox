@@ -1,4 +1,4 @@
-// 销售型模板：高浮动、外部 KPI 驱动、积木公式、多扣项
+// 销售型模板：固定+管理津贴+销售提成+绩效系数+积木奖金+工龄奖+考勤联动全勤奖+考勤扣款，覆盖月度录入与考勤 Excel 全流程
 import type { PayTemplate } from '../../types';
 import {
   makeComponent,
@@ -15,10 +15,17 @@ const components = [
     calcConfig: { kind: 'fixed', amount: 5000 },
   }),
   makeComponent({
+    id: 'sl-mgmt',
+    code: 'SL_MGMT',
+    name: '管理津贴',
+    description: '固定金额，每月 1000 元',
+    calcConfig: { kind: 'fixed', amount: 1000 },
+  }),
+  makeComponent({
     id: 'sl-comm',
     code: 'SL_COMM',
     name: '销售提成',
-    description: '每月录入绩效得分，按得分计算',
+    description: '每月在工作台录入绩效得分，按得分×系数计算',
     calcConfig: {
       kind: 'external',
       inputKey: 'kpi',
@@ -28,11 +35,18 @@ const components = [
     },
   }),
   makeComponent({
-    id: 'sl-mgmt',
-    code: 'SL_MGMT',
-    name: '管理津贴',
-    description: '固定金额，每月 1000 元',
-    calcConfig: { kind: 'fixed', amount: 1000 },
+    id: 'sl-perf',
+    code: 'SL_PERF',
+    name: '绩效工资',
+    description: '基数为基本工资+管理津贴，工作台只录绩效系数，按基数×系数计算',
+    calcConfig: {
+      kind: 'performance',
+      baseMode: 'components',
+      baseAmount: 0,
+      baseComponentIds: ['sl-base', 'sl-mgmt'],
+      inputLabel: '绩效系数',
+      defaultCoefficient: 1,
+    },
   }),
   makeComponent({
     id: 'sl-block',
@@ -49,6 +63,54 @@ const components = [
           { type: 'ref', refType: 'constant', value: 0.04 },
         ],
       },
+    },
+  }),
+  makeComponent({
+    id: 'sl-senior',
+    code: 'SL_SENIOR',
+    name: '工龄奖',
+    description: '按入职日期自动算周年，满1年100、满3年200、满5年300',
+    calcConfig: {
+      kind: 'seniority',
+      brackets: [
+        { minYears: 1, amount: 100 },
+        { minYears: 3, amount: 200 },
+        { minYears: 5, amount: 300 },
+      ],
+    },
+  }),
+  makeComponent({
+    id: 'sl-full',
+    code: 'SL_FULL',
+    name: '全勤奖',
+    description: '与考勤联动，无缺勤即发 300 元，否则 0',
+    calcConfig: {
+      kind: 'fullAttendance',
+      amount: 300,
+      requireNoAbsent: true,
+      requireNoSick: false,
+      requireNoHourLeave: false,
+      attendanceComponentId: 'sl-attend',
+    },
+  }),
+  makeComponent({
+    id: 'sl-attend',
+    code: 'SL_ATTEND',
+    name: '考勤扣款',
+    description: '按应出勤、实际出勤、小时假、病假折算；病假每天扣日工资20%',
+    nature: 'deduction',
+    calcConfig: {
+      kind: 'attendance',
+      baseMode: 'components',
+      baseAmount: 0,
+      baseComponentIds: ['sl-base', 'sl-mgmt'],
+      dayDivisor: 'actual',
+      statutoryDays: 21.75,
+      workHoursPerDay: 8,
+      sickBaseMode: 'base',
+      sickBaseComponentIds: ['sl-base'],
+      sickMinimumAmount: 0,
+      sickDeductRate: 0.2,
     },
   }),
   makeComponent({
