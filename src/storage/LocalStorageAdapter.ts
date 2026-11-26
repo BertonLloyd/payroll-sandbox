@@ -13,7 +13,7 @@ export class LocalStorageAdapter implements StorageAdapter {
 
   async get<T>(key: string): Promise<T | null> {
     try {
-      const raw = localStorage.getItem(this.fullKey);
+      const raw = localStorage.getItem(this.fullKey(key));
       return raw === null ? null : (JSON.parse(raw) as T);
     } catch (e) {
       throw new StorageAccessError(`读取失败：${key}`, e);
@@ -28,7 +28,7 @@ export class LocalStorageAdapter implements StorageAdapter {
       throw new StorageAccessError(`数据无法序列化：${key}`, e);
     }
     try {
-      localStorage.setItem(this.fullKey, serialized);
+      localStorage.setItem(this.fullKey(key), serialized);
     } catch (e) {
       if (e instanceof DOMException && (e.name === 'QuotaExceededError' || e.code === 22)) {
         throw new StorageQuotaError(key, e);
@@ -39,7 +39,7 @@ export class LocalStorageAdapter implements StorageAdapter {
 
   async remove(key: string): Promise<void> {
     try {
-      localStorage.removeItem(this.fullKey);
+      localStorage.removeItem(this.fullKey(key));
     } catch (e) {
       throw new StorageAccessError(`删除失败：${key}`, e);
     }
