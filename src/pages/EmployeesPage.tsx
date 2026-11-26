@@ -3,6 +3,7 @@ import { useMemo, useRef, useState } from 'react';
 import { Pencil, Plus, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { usePayroll } from '@/store';
+import { useScheme } from '@/store/SchemeProvider';
 import type { Employee, EmployeeStatus } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -29,6 +30,7 @@ import {
   EmployeeOverrideDialog,
 } from '@/components/business/employeeform';
 import { toast } from 'sonner';
+import { useOnboarding } from '@/components/business/onboarding';
 
 const GRID =
   'grid grid-cols-[90px_100px_minmax(120px,1fr)_minmax(120px,1fr)_80px_140px_80px_130px] items-center gap-2 px-3';
@@ -42,7 +44,22 @@ const STATUS_LABEL: Record<EmployeeStatus, string> = {
 const ROW_H = 46;
 
 export default function EmployeesPage() {
-  const { employees, structures, employeeOps } = usePayroll();
+  const {
+    employees: allEmployees,
+    structures: allStructures,
+    employeeOps,
+  } = usePayroll();
+  const { currentSchemeId } = useScheme();
+  const { spotlight, clearSpotlight } = useOnboarding();
+
+  // 仅当前方案的员工与结构
+  const employees = allEmployees.filter(
+    (e) => e.schemeId === currentSchemeId,
+  );
+  const structures = allStructures.filter(
+    (s) => s.schemeId === currentSchemeId,
+  );
+
   const [keyword, setKeyword] = useState('');
   const [dept, setDept] = useState('all');
   const [formOpen, setFormOpen] = useState(false);
@@ -96,7 +113,12 @@ export default function EmployeesPage() {
         });
         toast.success('员工档案已更新');
       } else {
+        if (!currentSchemeId) {
+          toast.error('请先选择或创建一个方案');
+          return;
+        }
         await employeeOps.create({
+          schemeId: currentSchemeId,
           empNo: data.empNo,
           name: data.name,
           department: data.department,
@@ -121,7 +143,7 @@ export default function EmployeesPage() {
           className="max-w-xs"
           placeholder="搜索姓名 / 工号 / 岗位"
           value={keyword}
-          onChange={(e) => setKeyword(e.target.value)}
+          onChange={(e) => setKeyword(e.value)}
         />
         <Select value={dept} onValueChange={setDept}>
           <SelectTrigger className="w-40">
@@ -137,8 +159,12 @@ export default function EmployeesPage() {
           </SelectContent>
         </Select>
         <Button
-          className="ml-auto"
+          className={[
+            'ml-auto',
+            spotlight === 'new-employee' ? 'onboarding-spotlight' : '',
+          ].join(' ')}
           onClick={() => {
+            clearSpotlight();
             setEditing(null);
             setFormOpen(true);
           }}
