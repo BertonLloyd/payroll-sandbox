@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { usePayroll } from '@/store';
 import { useScheme } from '@/store/SchemeProvider';
+import { collectAllInputFields } from '@/lib/inputFields';
 import type {
   CalcConfig,
   Employee,
@@ -37,11 +38,17 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
+  AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { StructureOverrideDialog } from '@/components/business/structureform/StructureOverrideDialog';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useOnboarding } from '@/components/business/onboarding';
 import { toast } from 'sonner';
 
@@ -49,6 +56,7 @@ export default function StructuresPage() {
   const {
     structures: allStructures,
     components: allComponents,
+    employees: allEmployees,
     paramPacks,
     structureOps,
   } = usePayroll();
@@ -72,6 +80,18 @@ export default function StructuresPage() {
 
   const selected = structures.find((s) => s.id === selectedId) ?? null;
   const componentMap = new Map(components.map((c) => [c.id, c]));
+  const overrideRefOptions = useMemo(
+    () => components.map((c) => ({ id: c.id, name: c.name })),
+    [components],
+  );
+  const overrideInputOptions = useMemo(
+    () =>
+      collectAllInputFields(components).map((f) => ({
+        key: f.key,
+        label: f.label,
+      })),
+    [components],
+  );
 
   // 数据加载或删除后，当前选中失效时自动落到第一个结构
   useEffect(() => {
@@ -156,7 +176,7 @@ export default function StructuresPage() {
     const next = [...selected.items];
     const target = index + direction;
     if (target < 0 || target >= next.length) return;
-    [next[index], next[target]] = [next[target], next[index]];
+    [next[index], next[target]] = next[target], next[index];
     next.forEach((it, i) => (it.order = i));
     await persist({ items: next });
   }
@@ -260,8 +280,7 @@ export default function StructuresPage() {
                     persist({
                       status:
                         selected.status === 'active' ? 'inactive' : 'active',
-                    })
-                  }
+                    })}
                 >
                   <Power className="size-4" />
                   {selected.status === 'active' ? '停用' : '启用'}
@@ -291,40 +310,60 @@ export default function StructuresPage() {
                     {item.override && (
                       <Badge variant="outline">已覆盖</Badge>
                     )}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="size-7"
-                      onClick={() => setOverrideItem(item)}
-                    >
-                      <Pencil className="size-3.5" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="size-7"
-                      disabled={index === 0}
-                      onClick={() => reorder(index, -1)}
-                    >
-                      <ArrowUp className="size-3.5" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="size-7"
-                      disabled={index === selected.items.length - 1}
-                      onClick={() => reorder(index, 1)}
-                    >
-                      <ArrowDown className="size-3.5" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="size-7 text-muted-foreground"
-                      onClick={() => removeItem(index)}
-                    >
-                      <Trash2 className="size-3.5" />
-                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-7"
+                          onClick={() => setOverrideItem(item)}
+                        >
+                          <Pencil className="size-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>结构内覆盖</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-7"
+                          disabled={index === 0}
+                          onClick={() => reorder(index, -1)}
+                        >
+                          <ArrowUp className="size-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>上移</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-7"
+                          disabled={index === selected.items.length - 1}
+                          onClick={() => reorder(index, 1)}
+                        >
+                          <ArrowDown className="size-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>下移</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-7 text-muted-foreground"
+                          onClick={() => removeItem(index)}
+                        >
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>从结构移除</TooltipContent>
+                    </Tooltip>
                   </div>
                 );
               })}
@@ -386,6 +425,8 @@ export default function StructuresPage() {
           onOpenChange={(o) => !o && setOverrideItem(null)}
           component={componentMap.get(overrideItem.componentId)!}
           item={overrideItem}
+          refOptions={overrideRefOptions}
+          inputOptions={overrideInputOptions}
           onSave={async (override: Partial<CalcConfig> | undefined) => {
             if (!selected) return;
             const next = selected.items.map((it) =>
@@ -404,6 +445,11 @@ export default function StructuresPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>删除该薪酬结构？</AlertDialogTitle>
+            <AlertDialogDescription>
+              当前有{' '}
+              {allEmployees.filter((e) => e.structureId === deleteId).length}{' '}
+              名员工使用该结构，删除后需重新挂接。结构将移入回收站，30 天内可还原。
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>取消</AlertDialogCancel>
