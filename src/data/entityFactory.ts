@@ -24,6 +24,7 @@ export function makeComponent(input: {
   nature?: Nature;
   taxTreatment?: TaxTreatment;
   calcConfig: CalcConfig;
+  excludeFromTotal?: boolean;
   period?: PayComponent['period'];
   scope?: PayComponent['scope'];
   status?: PayComponent['status'];
