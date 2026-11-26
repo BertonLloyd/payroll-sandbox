@@ -143,7 +143,7 @@ export default function EmployeesPage() {
           className="max-w-xs"
           placeholder="搜索姓名 / 工号 / 岗位"
           value={keyword}
-          onChange={(e) => setKeyword(e.value)}
+          onChange={(e) => setKeyword(e.target.value)}
         />
         <Select value={dept} onValueChange={setDept}>
           <SelectTrigger className="w-40">
