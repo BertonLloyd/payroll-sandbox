@@ -1,13 +1,14 @@
 // GitHub Pages 专用构建：标准 Vite + 代码分割，不依赖妙搭 preset
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   base: '/payroll-sandbox/',
   resolve: {
     alias: {
