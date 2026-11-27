@@ -227,7 +227,7 @@ export function runSandbox(input: RunSandboxInput): SandboxResult {
   const headcount = employeeResults.length;
   const gross = round2(employeeResults.reduce((s, r) => s + r.slip.gross, 0));
   const employerTotalSum = round2(
-    employeeResults.reduce((s, r) => s + r.employerTotal),
+    employeeResults.reduce((s, r) => s + r.employerTotal, 0),
   );
   const totalCost = round2(gross + employerTotalSum);
   const avgCost = headcount ? round2(totalCost / headcount) : 0;
