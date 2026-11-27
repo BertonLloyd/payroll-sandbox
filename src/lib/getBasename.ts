@@ -1,15 +1,17 @@
 /**
- * 解析 React Router 的 basename（应用在当前域名下的挂载路径）
+ * 解析 React Router 的 basename（应用在当前域名下的挂载点）
  *
  * 不能直接使用 import.meta.env.BASE_URL：妙搭构建时该值是指向 CDN 的完整跨域地址，
  * 作为 Router basename 会使当前路径无法匹配，导致整页白屏。
  * 改为运行时基于当前 pathname 推断挂载点，兼容妙搭、本地开发与子路径自托管。
  */
+// 注意：新增顶层路由时必须同步加入此列表，否则在该路由上整页加载/刷新会误判挂载点
 const INTERNAL_ROUTE_SEGMENTS = [
   'components',
   'structures',
   'employees',
   'payroll',
+  'sandbox',
   'reports',
   'equity',
   'settings',
