@@ -2,6 +2,7 @@
 import {
   BarChart3,
   Calculator,
+  FlaskConical,
   Layers,
   LayoutDashboard,
   Puzzle,
@@ -19,7 +20,7 @@ export interface NavItem {
 
 export interface NavGroup {
   title: string;
-  items: NavItem[];
+  items: NavItem;
 }
 
 export const NAV_GROUPS: NavGroup[] = [
@@ -32,6 +33,12 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { path: '/components', label: '组件库', icon: Puzzle },
       { path: '/structures', label: '薪酬结构', icon: Layers },
+    ],
+  },
+  {
+    title: '测算沙盘',
+    items: [
+      { path: '/sandbox', label: '薪酬测算沙盘', icon: FlaskConical },
     ],
   },
   {

@@ -23,6 +23,8 @@ export interface CalcPayrollInput {
   year: number;
   month: number;
   socialBase?: number;
+  // 可选组件结果乘数：沙盘用于浮动工资整体系数，缺省返回 1，不影响现有算薪
+  componentMultiplier?: (componentId: string) => number;
 }
 
 function round2(n: number): number {
@@ -104,8 +106,9 @@ export function calcPayroll(input: CalcPayrollInput): PaySlip {
   };
 
   for (const id of order) {
-    const value = evalComponent(id, resolvedConfigs.get(id)!, ctx);
-    const rounded = round2(value);
+    const raw = evalComponent(id, resolvedConfigs.get(id)!, ctx);
+    const multiplier = input.componentMultiplier?.(id) ?? 1;
+    const rounded = round2(raw * multiplier);
     results.set(id, rounded);
     const component = componentMap.get(id)!;
     // 满勤标准应发不含“仅作基数”的组件（如销售额）

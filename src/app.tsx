@@ -11,6 +11,7 @@ const ComponentsPage = lazy(() => import('@/pages/ComponentsPage'));
 const StructuresPage = lazy(() => import('@/pages/StructuresPage'));
 const EmployeesPage = lazy(() => import('@/pages/EmployeesPage'));
 const PayrollPage = lazy(() => import('@/pages/PayrollPage'));
+const SandboxPage = lazy(() => import('@/pages/SandboxPage'));
 const ReportsPage = lazy(() => import('@/pages/ReportsPage'));
 const EquityPage = lazy(() => import('@/pages/EquityPage'));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
@@ -30,7 +31,7 @@ export default function App() {
     <PayrollProvider>
       <SchemeProvider>
         <OnboardingProvider>
-          <Suspense fallback={<PageFallback />}>
+          <Suspense fallback={<PageFallback>}>
           <Routes>
             <Route element={<AppLayout />}>
               <Route path="/" element={<HomePage />} />
@@ -38,6 +39,7 @@ export default function App() {
               <Route path="/structures" element={<StructuresPage />} />
               <Route path="/employees" element={<EmployeesPage />} />
               <Route path="/payroll" element={<PayrollPage />} />
+              <Route path="/sandbox" element={<SandboxPage />} />
               <Route path="/reports" element={<ReportsPage />} />
               <Route path="/equity" element={<EquityPage />} />
               <Route path="/settings" element={<SettingsPage />} />
