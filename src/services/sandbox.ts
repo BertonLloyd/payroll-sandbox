@@ -185,6 +185,7 @@ export function runSandbox(input: RunSandboxInput): SandboxResult {
       declaredBase = first.gross;
       slip = first;
     } else if (strategy.kind === 'minimum') {
+      // 传 0：calcSocial 按各险种 baseMin 钳制到法定下限，下限值由参数包维护
       declaredBase = 0;
       slip = calcPayroll({ ...common, socialBase: 0 });
     } else if (strategy.kind === 'ratio') {
