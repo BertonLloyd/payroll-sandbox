@@ -31,7 +31,7 @@ export default function App() {
     <PayrollProvider>
       <SchemeProvider>
         <OnboardingProvider>
-          <Suspense fallback={<PageFallback>}>
+          <Suspense fallback={<PageFallback />}>
           <Routes>
             <Route element={<AppLayout />}>
               <Route path="/" element={<HomePage />} />
